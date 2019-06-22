@@ -56,7 +56,7 @@ class LatheThreadingTool(ItemWithParameters):
         self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
 
-	self.generateButton = ActionParameter(parent=self, name="Calculate...", callback=self.generatePath)
+        self.generateButton = ActionParameter(parent=self, name="Calculate...", callback=self.generatePath)
         self.parameters=[self.presetParameter, [self.leftBound, self.rightBound],  self.toolSide, self.direction,  self.retract,
                          self.pitch, self.start_diameter, self.end_diameter, self.coneAngle, self.stepover, self.generateButton]
         self.patterns=None
