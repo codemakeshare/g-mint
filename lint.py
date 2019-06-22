@@ -61,7 +61,8 @@ class CAMGui(QtGui.QSplitter):
         self.centerWidget.setSizes([4000,4000])
 
         self.addWidget(self.centerWidget)
-        self.addWidget(self.pathtab)
+        #self.addWidget(self.pathtab)
+	self.tabs.addTab(self.pathtab, "Paths")
         self.setSizes([100, 1200, 300])
         self.setWindowTitle('Machine Interface')
         self.updateGeometry()

@@ -15,7 +15,7 @@ class CameraViewer(QtGui.QWidget):
 
         self.image_label = QLabel("waiting for video...")
         self.image_label.move(0, 0)
-        self.image_label.resize(1280, 720)
+        self.image_label.resize(800, 600)
 
         self.main_layout = QVBoxLayout()
         self.main_layout.addWidget(self.image_label)
@@ -23,11 +23,12 @@ class CameraViewer(QtGui.QWidget):
 
         self.zoomSlider = QSlider(orientation=QtCore.Qt.Horizontal)
         self.zoomSlider.setMinimum(100)
-        self.zoomSlider.setMaximum(300)
+        self.zoomSlider.setMaximum(200)
 
         self.main_layout.addWidget(self.zoomSlider)
+        self.busy = False
         self.read_timer = QtCore.QTimer()
-        self.read_timer.setInterval(40)
+        self.read_timer.setInterval(100)
         self.read_timer.timeout.connect(self.updateCamera)
         self.read_timer.start()
 
@@ -36,9 +37,9 @@ class CameraViewer(QtGui.QWidget):
         self.image_label.setPixmap(QPixmap.fromImage(image))
 
     def Zoom(self, cv2Object, zoomSize):
-        old_size = (cv2Object.shape[0], cv2Object.shape[1])
+        old_size = (cv2Object.shape[0]/zoomSize, cv2Object.shape[1]/zoomSize)
         new_size = (int(zoomSize * cv2Object.shape[1]), int(zoomSize * cv2Object.shape[0]))
-        cv2Object = cv2.resize(cv2Object, new_size)
+        #cv2Object = cv2.resize(cv2Object, new_size)
         center = (cv2Object.shape[0] / 2, cv2Object.shape[1] / 2)
 
         cv2Object = cv2Object[int(center[0]-(old_size[0]/2)):int((center[0] +(old_size[0]/2))), int(center[1]-(old_size[1]/2)):int(center[1] + (old_size[0]/2))]
@@ -47,21 +48,28 @@ class CameraViewer(QtGui.QWidget):
 
     def updateCamera(self):
         if self.isVisible():
-            if self.cap is not None and self.cap.isOpened():
+            if not self.busy and self.cap is not None and self.cap.isOpened():
+                busy = True
                 ret, frame = self.cap.read()
-                frame = self.Zoom(frame, self.zoomSlider.value()/100.0)
+                if self.zoomSlider.value()>100:
+                    frame = self.Zoom(frame, self.zoomSlider.value()/100.0)
                 if ret == True:
                     rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     h, w, ch = rgbImage.shape
                     bytesPerLine = ch * w
                     convertToQtFormat = QtGui.QImage(rgbImage.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
-                    p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
+                    p = convertToQtFormat.scaled(500, 400, Qt.KeepAspectRatio)
                     #self.changePixmap.emit(p)
                     self.image_label.setPixmap(QPixmap.fromImage(p))
+                    self.busy=False   
             else:
-                self.cap = cv2.VideoCapture(0)
-                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
-                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720);
+                try:
+                        self.cap = cv2.VideoCapture(0)
+                        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
+                        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720);
+                        self.busy = False
+                except:
+                    print("problem setting up camera")
         else:
             if self.cap is not None:
                 self.cap.release()

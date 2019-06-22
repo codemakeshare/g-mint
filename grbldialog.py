@@ -539,7 +539,7 @@ class CursorWidget(QtGui.QWidget):
 
         layout.addWidget(cursorWidget)
 
-        self.jogfeed = LabeledNumberField(label="Jogspeed", min=0, max=1000, value=400, step=50, slider=True)
+        self.jogfeed = LabeledNumberField(label="Jogspeed", min=0, max=1000, value=80, step=10, slider=True)
         self.jogfeed.number.valueChanged.connect(self.rapidButtonClicked)
         self.rapidfeed = LabeledNumberField(label="Rapid speed", min=0, max=2000, value=2000, step=50)#, slider=False)
         layout.addWidget(self.rapidfeed)
