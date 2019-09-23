@@ -107,10 +107,32 @@ class LatheTask(ItemWithParameters):
             if len(touchPoint)>0:
                 offset_path.append(GPoint(position=(start, y, depth), rapid = True))
                 offset_path.append(GPoint(position=(touchPoint[0][0],y, depth), rapid = False))
+
+                # assemble all points between touchpoint and retract point
+                y_coords = [y, y-retract]
+                for subpoly in contour.polygons:
+                    for p in subpoly:
+                        if (external and p[1] <= y and p[1] >= y-retract) or\
+                            (not external and p[1] >= y and p[1] <= y-retract):
+                            y_coords.append(p[1])
+                            y_coords.append(p[1] + 0.00000001)
+                            y_coords.append(p[1] - 0.00000001)
+                if external:
+                    y_coords.sort(reverse=True)
+                else:
+                    y_coords.sort()
+                for yfollow in y_coords:
+                    touchPointFollow = []
+                    touchPointFollow = contour.intersectWithLine([start, yfollow], [self.leftBound.getValue(), yfollow])
+                    if len(touchPointFollow) > 0:
+                        offset_path.append(GPoint(position=(touchPointFollow[0][0], touchPointFollow[0][1], depth), rapid=False))
+                    else:
+                        offset_path.append(GPoint(position=(self.leftBound.getValue(), yfollow, depth), rapid=False))
+
                 #if len(touchPoint2)>0:
                 #    offset_path.append(GPoint(position=(touchPoint2[0][0],y-retract, depth), rapid = False))
                 #else:
-                offset_path.append(GPoint(position=(touchPoint[0][0], y-retract, depth), rapid=False))
+                #offset_path.append(GPoint(position=(touchPoint[0][0], y-retract, depth), rapid=False))
 
                 offset_path.append(GPoint(position=(start, y-retract, depth), rapid = True))
             else:

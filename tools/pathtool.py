@@ -32,9 +32,13 @@ class PathTool(ItemWithParameters):
                 outputFile = model.filename.split(".stl")[0] + ".ngc"
         else:
             #print self.path.path
-            if self.path.getPathLength()>0:
-                startdepth=max([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
-                enddepth=min([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
+            try:
+                if self.path.getPathLength()>0:
+                    startdepth=max([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
+                    enddepth=min([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
+            except Exception as e:
+                print("path error:", e)
+                traceback.print_exc()
         self.startDepth=NumericalParameter(parent=self,  name='start depth',  value=startdepth,  enforceRange=False,  step=1)
         self.stopDepth=NumericalParameter(parent=self,  name='end depth ',  value=enddepth,   enforceRange=0,   step=1)
         self.maxDepthStep=NumericalParameter(parent=self,  name='max. depth step',  value=10.0,  min=0.1,  max=100,  step=1)
@@ -44,6 +48,7 @@ class PathTool(ItemWithParameters):
         self.depthStepping=ActionParameter(parent=self,  name='Apply depth stepping',  callback=self.applyDepthStep)
         self.removeNonCutting=ActionParameter(parent=self,  name='Remove non-cutting points',  callback=self.removeNoncuttingPoints)
         self.clean=ActionParameter(parent=self,  name='clean paths',  callback=self.cleanColinear)
+        self.smooth=ActionParameter(parent=self,  name='smooth path',  callback=self.fitArcs)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
         self.trochoidalDiameter=NumericalParameter(parent=self,  name='tr. diameter',  value=3.0,  min=0.0,  max=100,  step=0.1)
         self.trochoidalStepover=NumericalParameter(parent=self,  name='tr. stepover',  value=1.0,  min=0.1,  max=5,  step=0.1)
@@ -68,7 +73,7 @@ class PathTool(ItemWithParameters):
                                     self.laser_mode, 
                                     [self.depthStepping,   
                                     self.removeNonCutting],  
-                                    [self.clean, self.precision], 
+                                    [self.clean, self.smooth, self.precision],
                                     
                                     [self.trochoidalDiameter,  self.trochoidalStepover], 
                                     [self.trochoidalOrder, self.trochoidalSkip],
@@ -89,20 +94,107 @@ class PathTool(ItemWithParameters):
 
     
     def cleanColinear(self):
-        
         if len(self.outpaths)==0:
             self.path.outpaths=GCode()
             self.path.outpaths.combinePath(self.path.path)
         inpath=self.outpaths
         precision = self.precision.getValue()
+        smoothPath = []
+        pathlet = []
         for path in inpath:
-            i=1
-            while i<len(path.path)-1:
-                if not path.path[i].rapid and norm(normalize(array(path.path[i].position)-array(path.path[i-1].position))-normalize(array(path.path[i+1].position)-array(path.path[i].position)))<precision:
-                    del path.path[i]
-                i+=1
-        if self.viewUpdater!=None:
-            self.viewUpdater(self.path)
+            for p in path.path:
+                pathlet.append(p)
+                if len(pathlet)<=2:
+                    continue
+                # check for colinearity
+                max_error, furthest_point = path_colinear_error([p.position for p in pathlet])
+                if max_error< precision:
+                    # if colinear, keep going
+                    print("colinear:", len(pathlet), max_error)
+                    pass
+                else: #if not colinear, check if the problem is at start or end
+                    if len(pathlet)==3: # line doesn't start colinearly - drop first point
+                        print("drop point")
+                        smoothPath.append(pathlet.pop(0))
+                    else: # last point breaks colinearity - append segment up to second-last point
+                        print("append shortened path", len(pathlet), max_error, furthest_point)
+                        smoothPath.append(pathlet[0])
+                        smoothPath.append(pathlet[-2])
+                        pathlet = pathlet[-1:]
+        smoothPath+=pathlet # append last remaining points
+        self.outpaths=[GCode(path=smoothPath)]
+        self.updateView()
+
+    def fitArcs(self, dummy=False,  min_point_count = 5, max_radius = 1000.0):
+        if len(self.outpaths)==0:
+            self.path.outpaths=GCode()
+            self.path.outpaths.combinePath(self.path.path)
+        inpath=self.outpaths
+        print("min point count", min_point_count)
+        precision = self.precision.getValue()
+        smoothPath = []
+        pathlet = []
+        center = None
+        radius = 0
+        direction = "02"
+        for path in inpath:
+            for p in path.path:
+                if len(pathlet) < 3: #need at least 3 points to start circle
+                    pathlet.append(p)
+                # compute center with the first 3 points
+                elif len(pathlet)==3:
+                    #check if points are in horizontal plane
+                    if pathlet[0].position[2] == pathlet[1].position[2] and pathlet[1].position[2]==pathlet[2].position[2]:
+                        center, radius = findCircleCenter(pathlet[0].position, pathlet[1].position, pathlet[2].position)
+                    else:
+                        center = None
+                    if center is not None:
+                        radius = dist(center, pathlet[0].position)
+
+                    # check if points are colinear or not in plane, and drop first point
+                    if center is None or radius > max_radius:
+                        print("colinear, drop point")
+                        smoothPath.append(pathlet.pop(0))
+                        center=None
+                    pathlet.append(p)
+                    print(len(pathlet))
+                else:
+                    # check if following points are also on the same arc
+                    new_center, new_radius = findCircleCenter(pathlet[0].position, pathlet[int(len(pathlet) / 2)].position, p.position)
+                    midpoints = [mid_point(pathlet[i].position, pathlet[i+1].position) for i in range(0, len(pathlet)-1)]
+                    midpoints.append(mid_point(pathlet[-1].position, p.position))
+                    #if abs(dist(p.position, center) - radius) < precision and \
+                    if  new_center is not None and \
+                            p.position[2] == pathlet[0].position[2] and\
+                            max([dist(mp, new_center)-new_radius for mp in midpoints]) < precision and \
+                            max([abs(dist(ap.position, new_center) - new_radius) for ap in pathlet]) < precision and\
+                            scapro(diff(pathlet[0].position, center), diff(p.position,center))>0.5:
+                        center = new_center
+                        radius = new_radius
+                        pathlet.append(p)
+                    else:
+                        if len(pathlet)>min_point_count:
+                            # create arc
+                            print("making arc", len(pathlet))
+                            if scapro(diff(pathlet[int(len(pathlet)/2)].position, pathlet[0].position), diff(center, pathlet[0].position)) > 0:
+                                direction = "02"
+                            else:
+                                direction = "03"
+                            arc = GArc(position = pathlet[-1].position,
+                                       ij = [center[0] - pathlet[0].position[0], center[1]-pathlet[0].position[1]],
+                                       arcdir=direction)
+                            smoothPath.append(pathlet[0])
+                            smoothPath.append(arc)
+                            center = None
+                            pathlet = [p]
+                        else:
+                            #print("not arc, flush", len(pathlet))
+                            smoothPath+=pathlet
+                            pathlet=[p]
+                            center = None
+        smoothPath+=pathlet # append last remaining points
+        self.outpaths=[GCode(path=smoothPath)]
+        self.updateView()
 
     def getCompletePath(self):
         completePath = GCode(path=[])
@@ -114,11 +206,14 @@ class PathTool(ItemWithParameters):
         return completePath
 
     def updateView(self):
-        for line in traceback.format_stack():
-            print(line.strip())
+        #for line in traceback.format_stack():
+        #    print(line.strip())
         if self.viewUpdater!=None:
             print("pt:", self.tool)
-            self.viewUpdater(self.getCompletePath(), tool=self.tool)
+            try:
+                self.viewUpdater(self.getCompletePath(), tool=self.tool)
+            except Exception as e:
+                print(e)
         self.updateEstimate()
         
     def updateEstimate(self,  val=None):

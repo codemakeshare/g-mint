@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 
 class LatheThreadingTool(ItemWithParameters):
-    def __init__(self,  model=None,  tools=[], viewUpdater=None, tool=None, **kwargs):
+    def __init__(self,  model=None,  tools=[], viewUpdater=None, **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
         self.model=None
         self.patterns=[]
@@ -36,29 +36,28 @@ class LatheThreadingTool(ItemWithParameters):
 
         self.presetParameter = ChoiceParameter(parent=self,  name="Presets",  choices=self.presets.keys(),  value = "M10 x 1.5",  callback = self.loadPreset)
 
-        #self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
+        self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
         self.viewUpdater=viewUpdater
 
-        self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=-10, step=0.1)
-        self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=0, step=0.1)
+        self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=-10, step=0.1, callback = self.generatePath)
+        self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=0, step=0.1, callback = self.generatePath)
 
-        self.toolSide=ChoiceParameter(parent=self,  name="Tool side",  choices=["external",  "internal"], value = "external")
+        self.toolSide=ChoiceParameter(parent=self,  name="Tool side",  choices=["external",  "internal"], value = "external", callback = self.generatePath)
 
-        self.direction=ChoiceParameter(parent=self,  name="Direction",  choices=["right to left",  "left to right"],  value="right to left")
-        #self.model=model.object
-        self.pitch=NumericalParameter(parent=self, name="pitch",  value=1.0,  min=0.0001,  step=0.01)
-        self.start_diameter=NumericalParameter(parent=self, name="start diameter",  value=10.0,  min=0.1,  step=0.1)
-        self.end_diameter=NumericalParameter(parent=self, name="end diameter",  value=10.0,  min=0.1,  step=0.1)
-        self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01)
+        self.direction=ChoiceParameter(parent=self,  name="Direction",  choices=["right to left",  "left to right"],  value="right to left", callback = self.generatePath)
+        self.model=model.object
+        self.pitch=NumericalParameter(parent=self, name="pitch",  value=1.0,  min=0.0001,  step=0.01, callback = self.generatePath)
+        self.start_diameter=NumericalParameter(parent=self, name="start diameter",  value=10.0,  min=0.1,  step=0.1, callback = self.generatePath)
+        self.end_diameter=NumericalParameter(parent=self, name="end diameter",  value=10.0,  min=0.1,  step=0.1, callback = self.generatePath)
+        self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01,  callback = self.generatePath)
 
-        self.stepover=NumericalParameter(parent=self, name="stepover",  value=0.2,  min=0.0001,  step=0.01)
+        self.stepover=NumericalParameter(parent=self, name="stepover",  value=0.2,  min=0.0001,  step=0.01, callback = self.generatePath)
 
-        self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1)
+        self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1, callback = self.generatePath)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
 
-        self.generateButton = ActionParameter(parent=self, name="Calculate...", callback=self.generatePath)
         self.parameters=[self.presetParameter, [self.leftBound, self.rightBound],  self.toolSide, self.direction,  self.retract,
-                         self.pitch, self.start_diameter, self.end_diameter, self.coneAngle, self.stepover, self.generateButton]
+                         self.pitch, self.start_diameter, self.end_diameter, self.coneAngle, self.stepover]
         self.patterns=None
         self.loadPreset(self.presetParameter)
 
@@ -79,8 +78,6 @@ class LatheThreadingTool(ItemWithParameters):
         params = self.presets[parameter.value]
         self.setThread(*params)
 
-    def updatePath(self, path):
-        None
 
     def external_thread(self):
         offset_path = []

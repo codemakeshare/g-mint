@@ -87,7 +87,8 @@ class ObjectViewer(QtGui.QWidget):
         # self.w.addItem(g)
 
         self.rawpath = []
-        self.colors = []
+        self.linecolors = []
+        self.pointcolors = []
 
         self.gl_cutting_tool = None
 
@@ -150,9 +151,10 @@ class ObjectViewer(QtGui.QWidget):
         self.gpoints = None
         if path.__class__.__name__ == "GCode":
             self.rawpath = []
-            self.colors = []
+            self.linecolors = []
+            self.pointcolors = []
             self.gpoints = path
-            self.interpolated = path.get_draw_path()
+            self.interpolated = path.get_draw_path(interpolate_arcs=True)
             colorcycle = 0.0
             # if path.outpaths!=None and len(path.outpaths)>0:
             #     point_count = sum([len(subpath) for subpath in path.outpaths ])
@@ -181,7 +183,11 @@ class ObjectViewer(QtGui.QWidget):
                         point_color = (0.0, 0.0, 1.0, 1.0)
                     if not p.in_contact:
                         point_color = (0.3, 0.3, 0.7, 0.5)
-                    self.colors.append(point_color)
+                    self.linecolors.append(point_color)
+                    if not p.interpolated:
+                        self.pointcolors.append(point_color)
+                    else:
+                        self.pointcolors.append((0.0,0.0,0.0,0.0))
                     colorcycle += 1
 
         else:
@@ -191,7 +197,7 @@ class ObjectViewer(QtGui.QWidget):
                 # rawpath.append(p[0])
                 # colors.append((0.5, 0.5, 0.5, 0.5))
                 self.rawpath += p
-                self.colors += [(float(i) / len(p), float(i) / len(p), float(i) / len(p), 1.0) for i in
+                self.linecolors += [(float(i) / len(p), float(i) / len(p), float(i) / len(p), 1.0) for i in
                                 range(0, len(p))]
                 self.rawpath.append(p[-1])
                 self.colors.append((0.1, 0.1, 0.1, 0.2))
@@ -203,16 +209,17 @@ class ObjectViewer(QtGui.QWidget):
         self.path_slider.setValue(len(self.rawpath))
         self.updatePathPlot(width)
         drawpath = self.rawpath
-        drawcolors = self.colors
+
         if self.pathPlot == None:
-            self.pathPlot = gl.GLLinePlotItem(pos=array(drawpath), color=array(drawcolors), width=width)
-            self.pathPlotHighlight = gl.GLScatterPlotItem(pos=array(drawpath), color=array(drawcolors), size=3.0)
+            self.pathPlot = gl.GLLinePlotItem(pos=array(drawpath), color=array(self.linecolors), width=width)
+            self.pathPlotHighlight = gl.GLScatterPlotItem(pos=array(drawpath), color=array(self.pointcolors), size=3.0)
             self.w.addItem(self.pathPlot)
             self.w.addItem(self.pathPlotHighlight)
 
         else:
-            self.pathPlot.setData(pos=array(drawpath), color=array(drawcolors))
-            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(drawcolors))
+            self.pathPlot.setData(pos=array(drawpath), color=array(self.linecolors))
+
+            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(self.pointcolors))
 
 
 
@@ -227,10 +234,10 @@ class ObjectViewer(QtGui.QWidget):
         if start_index>=end_index:
             return
         drawpath = self.rawpath[start_index:end_index]
-        drawcolors = self.colors[start_index:end_index]
+
         if self.pathPlot is not None:
-            self.pathPlot.setData(pos=array(drawpath), color=array(drawcolors))
-            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(drawcolors))
+            self.pathPlot.setData(pos=array(drawpath), color=array(self.linecolors[start_index:end_index]))
+            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(self.pointcolors[start_index:end_index]))
 
             if self.gpoints is not None:
                 lp = self.gpoints.path[end_index - 1]
@@ -238,7 +245,7 @@ class ObjectViewer(QtGui.QWidget):
                 if lp.feedrate is not None:
                     feed = lp.feedrate
                 self.stats.setText(
-                    "x=% 4.2f y=% 4.2f z=% 4.2f f=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed)))
+                    "x=% 4.2f y=% 4.2f z=% 4.2f f=%i, line=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed), lp.line_number))
 
     @staticmethod
     def rounded_cylinder(rows, cols, radius=[1.0, 1.0, 0.0], length=1.0, offset=False):
@@ -296,10 +303,11 @@ class ObjectViewer(QtGui.QWidget):
         if end_index == 0:
             return
         drawpath = self.rawpath[0:end_index]
-        drawcolors = self.colors[0:end_index]
+
         if self.pathPlot is not None:
-            self.pathPlot.setData(pos=array(drawpath), color=array(drawcolors))
-            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(drawcolors))
+            self.pathPlot.setData(pos=array(drawpath), color=array(self.linecolors[0:end_index]))
+            self.pathPlotHighlight.setData(pos=array(drawpath), color=array(self.pointcolors[0:end_index]))
+
 
             if self.gpoints is not None:
                 lp = self.interpolated[end_index - 1]
@@ -307,8 +315,8 @@ class ObjectViewer(QtGui.QWidget):
                 if lp.feedrate is not None:
                     feed = lp.feedrate
                 if lp.feedrate is not None and lp.position is not None:
-                    self.stats.setText("x=% 4.2f y=% 4.2f z=% 4.2f f=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed)))
-
+                    self.stats.setText(
+                        "x=% 4.2f y=% 4.2f z=% 4.2f f=%i, line=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed), lp.line_number))
                 if self.gl_cutting_tool is not None:
                     self.gl_cutting_tool.resetTransform()
                     if lp.rotation is not None:

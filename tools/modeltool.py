@@ -17,7 +17,13 @@ class ModelTool(ItemWithParameters):
         self.heightMapResolution=NumericalParameter(parent=self, name="Height map resolution",  value=1.0,  step=0.1,  enforceRange=False,  enforceStep=False)
         self.heightMapButtonTop=ActionParameter(parent=self,  name='Calculate Heightmap (top)',  callback=self.heightmapTop)
         self.heightMapButtonBottom=ActionParameter(parent=self,  name='Calculate Heightmap (bottom)',  callback=self.heightmapBottom)
-        self.parameters=[[self.rotateX, self.rotateY, self.rotateZ], self.scaleX,  self.scaleY,  self.scaleZ,  self.scale,   [self.collapseTop,  self.collapseBottom],  self.heightMapResolution,  [self.heightMapButtonTop,  self.heightMapButtonBottom]]
+
+        self.parameters=[[self.rotateX, self.rotateY, self.rotateZ],
+                         self.scaleX,  self.scaleY,  self.scaleZ,  self.scale,
+                         [self.collapseTop,  self.collapseBottom],
+                         self.heightMapResolution,
+                         self.heightMapButtonTop,
+                         self.heightMapButtonBottom]
     
     
     def rotate_x(self):

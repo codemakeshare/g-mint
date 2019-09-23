@@ -346,6 +346,16 @@ class PolygonGroup:
         else:
             return []
 
+    def drapeCover(self, a, b):
+        if len(self.polygons) > 0:
+            points = []
+            for poly in self.polygons:
+                points+=intersectLinePolygonBracketed(a, b, poly)
+            points.sort(key=lambda e: dist(e[0], a))
+            return points
+        else:
+            return []
+
     #compares polygon to a reference polygon and returns a set of subpaths that differ from the reference
     def getDifferentPathlets(self,  reference,  tolerance=0.01):
         result = PolygonGroup(scaling = self.scaling,  precision = self.precision,  zlevel = self.zlevel)

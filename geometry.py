@@ -79,7 +79,12 @@ def rotate_x(point, angle):
     else:
         return array([point[0], point[1] * cos(angle) + point[2] * sin(angle), -point[1] * sin(angle) + point[2] * cos(angle)])
 
-    
+def mid_point(p1, p2):
+    return [(p1[i]+p2[i])/2.0 for i in range(0, min(len(p1), len(p2)))]
+
+def diff(p1, p2):
+    return [(p1[i]-p2[i])for i in range(0, min(len(p1), len(p2)))]
+
 def shares_points(vertices1,  vertices2):
     result=0
     for v1 in vertices1:
@@ -187,6 +192,29 @@ def intersectLineCircle2D(a, b, center,  rad):
     points = intersectLineOriginCircle2D([a[0]-center[0],  a[1]-center[1]],  [b[0]-center[0],  b[1]-center[1]],  rad)
     result = [[p[0]+center[0],  p[1]+center[1]] for p in points]
     return result
+
+def findCircleCenter(p1, p2, p3):
+    center = [0.0, 0.0, 0.0]
+    if len(p1)>2:
+        center[2] = p1[2]
+    ax = (p1[0] + p2[0]) / 2.0
+    ay = (p1[1] + p2[1]) / 2.0
+    ux = (p1[1] - p2[1])
+    uy = (p2[0] - p1[0])
+    bx = (p2[0] + p3[0]) / 2.0
+    by = (p2[1] + p3[1]) / 2.0
+    vx = (p2[1] - p3[1])
+    vy = (p3[0] - p2[0])
+    dx = ax - bx
+    dy = ay - by
+    vu = vx * uy - vy * ux
+    if (vu == 0):
+        return None, 0 # Points are colinear, so no unique solution
+    g = (dx * uy - dy * ux) / vu
+    center[0] = bx + g * vx
+    center[1] = by + g * vy
+    radius = (dist(p1, center) + dist(p2, center) + dist(p3, center))/3.0
+    return center, radius
 
 
 def dropSphereLine(a, b,  p,  r):
@@ -307,12 +335,28 @@ def closest_point_on_open_polygon(p,  poly):
         p1=p2
     return closest_distance,  closest_point,  closest_index
 
+def path_colinear_error(poly): # gives biggest deviation of points between first and last point
+    n = len(poly)
+    if len(poly)<3:
+        return 0 # two or less points are colinear by definition
+    p1 = poly[0]
+    p2 = poly[-1]
+    furthest_index= 0
+    error = 0.0
+    for i in range(1,  n-1):
+        p= poly[i]
+        new_close_point = closestPointOnLineSegment(p1,  p2,   p)
+        if dist(new_close_point,  p)>error:
+            error = dist(new_close_point,  p)
+            furthest_index=i
+    return error, furthest_index
+
 # intersects a line segment with a polygon and returns all points ordered by distance to A
 def intersectLinePolygon(a, b, poly) :
     n = len(poly)
     p1 = poly[0]
     points = []
-    for i in range(0,  n+1):
+    for i in range(1,  n+1):
         p2= poly[i % n]
         px = intersectLineSegments2D(a, b, p1,  p2)
         if px is not None:
@@ -322,6 +366,22 @@ def intersectLinePolygon(a, b, poly) :
     points.sort(key=lambda x: dist(x, a))
     return points
 
+# intersects a line segment with a polygon and returns all points ordered by distance to A
+def intersectLinePolygonBracketed(a, b, poly) :
+    n = len(poly)
+    p1 = poly[0]
+    previous = 0
+    points = []
+    for i in range(1,  n+1):
+        p2= poly[i % n]
+        px = intersectLineSegments2D(a, b, p1,  p2)
+        if px is not None:
+            points.append([px, poly, previous, i])
+        p1=p2
+        previous = i
+
+    points.sort(key=lambda e: dist(e[0], a))
+    return points
 
 def polygon_inside(poly1, poly2):
     if polygon_chirality(poly1) * polygon_chirality(poly2) <0:
