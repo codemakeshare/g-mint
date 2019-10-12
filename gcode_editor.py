@@ -87,7 +87,7 @@ class GcodeEditorWidget(QWidget):
             self.object_viewer.setSelection(0, line_number)
 
     def getText(self):
-        return [l.encode("ascii") for l in self.editor.text().splitlines()]
+        return [l for l in self.editor.text().splitlines()]
 
     def updateText(self, text,  label="", fileSuffix="ngc"):
         if self.editingFlag: # don't update text if user is currently editing, to avoid propagation loops

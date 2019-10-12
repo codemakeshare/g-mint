@@ -39,6 +39,9 @@ class GPoint(GCommand):
         self.current_system_feedrate = None
         self.interpolated=interpolated
         self.order = order  # indicates order of cascaded pocket paths - 0 is innermost (starting) path
+        self.gmode = "G1"
+        if self.rapid:
+            self.gmode = "G0"
 
     def z_to_output(self):
 
@@ -63,11 +66,14 @@ class GPoint(GCommand):
         return[(GPoint(position=self.position, rotation = self.rotation, feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number))]
 
 class GArc(GPoint):
-    def __init__(self, ij=None, arcdir="02", control_point=False, **kwargs):
+    def __init__(self, ij=None, arcdir=None, control_point=False, **kwargs):
         GPoint.__init__(self, **kwargs)
         self.control_point = control_point
         self.ij = ij
+        if arcdir is None:
+            print("Error: undefined arc direction!")
         self.arcdir = arcdir
+        self.gmode = "G"+str(self.arcdir)
 
     def z_to_output(self):
         am = self.axis_mapping
@@ -102,6 +108,7 @@ class GArc(GPoint):
             print("radius mismatch:", radius, radius2)
 
         if int(self.arcdir) == 3:
+            print(int(self.arcdir))
             while end_angle > start_angle:
                 end_angle -= 2.0 * PI
             while angle > end_angle:
@@ -111,6 +118,7 @@ class GArc(GPoint):
                 angle -= angle_step
 
         else:
+
             while end_angle < start_angle:
                 end_angle += 2.0 * PI
             while angle < end_angle:
@@ -268,21 +276,28 @@ class GCode:
         rapid = None
 
         current_feedrate = self.default_feedrate
+        current_gmode = "G0"
         for p in complete_path:
-            if isinstance(p, GPoint) and p.rapid != rapid:
-                rapid = p.rapid
-                if rapid:
-                    # in laser mode, issue a spindle off command before rapids
-                    if self.laser_mode:
-                        output += "M5\n"
-                        # print "laser off"
-                    output += "G0 "
-                else:
-                    if self.laser_mode:
-                        # in laser mode, issue a spindle on command after rapids
-                        output += "M4 S1000\n"
+            if isinstance(p, GPoint):
 
-                    output += "G1 "
+                if p.rapid != rapid:
+                    rapid = p.rapid
+                    if rapid:
+                        # in laser mode, issue a spindle off command before rapids
+                        if self.laser_mode:
+                            output += "M5\n"
+                            # print "laser off"
+                        output += "G0 "
+                    else:
+                        if self.laser_mode:
+                            # in laser mode, issue a spindle on command after rapids
+                            output += "M4 S1000\n"
+
+                        output += current_gmode+" "
+                else:
+                    if p.gmode != current_gmode:
+                        current_gmode = p.gmode
+                        output += current_gmode+" "
 
             output += "" + p.to_output()
             if p.feedrate is not None and (p.control_point or p.rapid == False and p.feedrate != current_feedrate):
@@ -374,7 +389,7 @@ def parse_gcode(datalines):
     feed = None
     rapid = False
     arc = False
-
+    arcdir = None
 
     path = GCode()
     linecount = 0
@@ -423,6 +438,7 @@ def parse_gcode(datalines):
                     arc = False
                 if c[0].upper() == "G" and (c[1] == "2" or c[1] == "3" or c[1] == "02" or c[1] == "03"):  # arc interpolation
                     arc = True
+                    arcdir = c[1]
                     rapid = False
 
                 if arc and c[0].upper() == "I":
@@ -435,7 +451,7 @@ def parse_gcode(datalines):
 
         if new_coord:
             if arc:
-                path.append(GArc(position=[x, y, z], ij= [i, j], feedrate=feed, rapid=rapid, command = l, line_number=linecount));
+                path.append(GArc(position=[x, y, z], ij= [i, j], arcdir = arcdir, feedrate=feed, rapid=rapid, command = l, line_number=linecount));
             else:
                 if new_rotation:
                     path.append(GPoint(position=[x, y, z], rotation=[ra, rb, rc], feedrate=feed, rapid=rapid, command=l, line_number=linecount));
