@@ -1,6 +1,6 @@
 from numpy import *
 from geometry import *
-import traceback
+
 
 class GCommand:
     def __init__(self, command="", position=None, rotation=None, feedrate=None, rapid=False,
@@ -16,7 +16,6 @@ class GCommand:
         self.position = position
         self.rotation=rotation
         self.line_number=line_number
-        self.interpolated=False
 
     def to_output(self):
         return "%s" % (self.command)
@@ -30,18 +29,14 @@ class GCommand:
 
 class GPoint(GCommand):
     def __init__(self, inside_model=True, control_point=False,
-                 in_contact=True, interpolated = False, order=0, dist_from_model=None, **kwargs):
+                 in_contact=True, order=0, dist_from_model=None, **kwargs):
         GCommand.__init__(self,  **kwargs)
         self.control_point = control_point
         self.inside_model = inside_model
         self.in_contact = in_contact
         self.dist_from_model = dist_from_model
         self.current_system_feedrate = None
-        self.interpolated=interpolated
         self.order = order  # indicates order of cascaded pocket paths - 0 is innermost (starting) path
-        self.gmode = "G1"
-        if self.rapid:
-            self.gmode = "G0"
 
     def z_to_output(self):
 
@@ -66,14 +61,13 @@ class GPoint(GCommand):
         return[(GPoint(position=self.position, rotation = self.rotation, feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number))]
 
 class GArc(GPoint):
-    def __init__(self, ij=None, arcdir=None, control_point=False, **kwargs):
-        GPoint.__init__(self, **kwargs)
-        self.control_point = control_point
+    def __init__(self, position=None, ij=None, arcdir="02", rotation=None, feedrate=None, rapid=False, control_point=False,
+                 inside_model=True,
+                 in_contact=True, order=0, dist_from_model=None, command="", line_number=0, **kwargs):
+        GPoint.__init__(self, position, rotation, feedrate, rapid, control_point, inside_model, in_contact, order,
+                        dist_from_model, command, line_number, **kwargs)
         self.ij = ij
-        if arcdir is None:
-            print("Error: undefined arc direction!")
         self.arcdir = arcdir
-        self.gmode = "G"+str(self.arcdir)
 
     def z_to_output(self):
         am = self.axis_mapping
@@ -94,7 +88,7 @@ class GArc(GPoint):
     def interpolate_to_points(self, current_pos):
         arc_start = current_pos
         path=[]
-        #print(arc_start, self.ij, self.position)
+
         center = [arc_start[0] + self.ij[0], arc_start[1] + self.ij[1], self.position[2]]
         start_angle = full_angle2d([arc_start[0] - center[0], arc_start[1] - center[1]], [1, 0])
         end_angle = full_angle2d([self.position[0] - center[0], self.position[1] - center[1]], [1, 0])
@@ -102,29 +96,22 @@ class GArc(GPoint):
 
         angle = start_angle
         radius = dist([center[0], center[1]], [arc_start[0], arc_start[1]])
-        radius2 = dist([center[0], center[1]], [self.position[0], self.position[1]])
-
-        if abs(radius-radius2)>0.01:
-            print("radius mismatch:", radius, radius2)
-
         if int(self.arcdir) == 3:
-            print(int(self.arcdir))
             while end_angle > start_angle:
                 end_angle -= 2.0 * PI
             while angle > end_angle:
                 path.append(
                     GPoint(position=[center[0] + radius * cos(angle), center[1] - radius * sin(angle),
-                                     self.position[2]], feedrate=self.feedrate, rapid=self.rapid, interpolated=True, line_number=self.line_number));
+                                     self.position[2]], feedrate=self.feedrate, rapid=self.rapid), line_number=self.line_number);
                 angle -= angle_step
 
         else:
-
             while end_angle < start_angle:
                 end_angle += 2.0 * PI
             while angle < end_angle:
                 path.append(
                     GPoint(position=[center[0] + radius * cos(angle), center[1] - radius * sin(angle), self.position[2]],
-                           feedrate=self.feedrate, rapid=self.rapid, interpolated=True, line_number=self.line_number));
+                           feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number));
                 angle += angle_step
 
         path.append(GPoint(position=self.position, feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number));
@@ -163,7 +150,7 @@ class GCode:
         for p in gcode.path:
             self.append(p)
 
-    def get_draw_path(self, start = 0, end=-1, start_rotation = [0,0,0], interpolate_arcs = True):
+    def get_draw_path(self, start = 0, end=-1, start_rotation = [0,0,0]):
         draw_path=[]
         current_pos = [0,0,0]
         current_rotation = None
@@ -172,26 +159,20 @@ class GCode:
             if p.line_number==0:
                 p.line_number=line
             line = max(p.line_number+1, line+1)
-            try:
-                point_list=[GPoint(position=p.position, feedrate=p.feedrate, rapid=p.rapid, line_number=p.line_number)]
-                if interpolate_arcs:
-                    point_list = p.interpolate_to_points(current_pos)
-                for ip in point_list:
-                    if ip.position is None:
-                        ip.position = current_pos
-                    if ip.rotation is not None:
-                        current_rotation = ip.rotation
-                    else:
-                        if current_rotation is not None:
-                            ip.rotation = current_rotation
-                    if ip.rotation is not None: # apply rotation to path points for preview only
+            for ip in p.interpolate_to_points(current_pos):
+                if ip.position is None:
+                    ip.position = current_pos
+                if ip.rotation is not None:
+                    current_rotation = ip.rotation
+                else:
+                    if current_rotation is not None:
+                        ip.rotation = current_rotation
+                if ip.rotation is not None: # apply rotation to path points for preview only
 
-                        ip.position = rotate_x(ip.position, ip.rotation[0] * PI / 180.0)
-                        ip.position = rotate_y(ip.position, ip.rotation[1] * PI / 180.0)
-                        ip.position = rotate_z(ip.position, ip.rotation[2] * PI / 180.0)
-                    draw_path.append(ip)
-            except:
-                traceback.print_exc()
+                    ip.position = rotate_x(ip.position, ip.rotation[0] * PI / 180.0)
+                    ip.position = rotate_y(ip.position, ip.rotation[1] * PI / 180.0)
+                    ip.position = rotate_z(ip.position, ip.rotation[2] * PI / 180.0)
+                draw_path.append(ip)
             if (len(draw_path)>1):
                 current_pos = draw_path[-1].position
         return draw_path
@@ -276,28 +257,21 @@ class GCode:
         rapid = None
 
         current_feedrate = self.default_feedrate
-        current_gmode = "G0"
         for p in complete_path:
-            if isinstance(p, GPoint):
-
-                if p.rapid != rapid:
-                    rapid = p.rapid
-                    if rapid:
-                        # in laser mode, issue a spindle off command before rapids
-                        if self.laser_mode:
-                            output += "M5\n"
-                            # print "laser off"
-                        output += "G0 "
-                    else:
-                        if self.laser_mode:
-                            # in laser mode, issue a spindle on command after rapids
-                            output += "M4 S1000\n"
-
-                        output += current_gmode+" "
+            if isinstance(p, GPoint) and p.rapid != rapid:
+                rapid = p.rapid
+                if rapid:
+                    # in laser mode, issue a spindle off command before rapids
+                    if self.laser_mode:
+                        output += "M5\n"
+                        # print "laser off"
+                    output += "G0 "
                 else:
-                    if p.gmode != current_gmode:
-                        current_gmode = p.gmode
-                        output += current_gmode+" "
+                    if self.laser_mode:
+                        # in laser mode, issue a spindle on command after rapids
+                        output += "M4 S1000\n"
+
+                    output += "G1 "
 
             output += "" + p.to_output()
             if p.feedrate is not None and (p.control_point or p.rapid == False and p.feedrate != current_feedrate):
@@ -389,7 +363,7 @@ def parse_gcode(datalines):
     feed = None
     rapid = False
     arc = False
-    arcdir = None
+
 
     path = GCode()
     linecount = 0
@@ -438,7 +412,6 @@ def parse_gcode(datalines):
                     arc = False
                 if c[0].upper() == "G" and (c[1] == "2" or c[1] == "3" or c[1] == "02" or c[1] == "03"):  # arc interpolation
                     arc = True
-                    arcdir = c[1]
                     rapid = False
 
                 if arc and c[0].upper() == "I":
@@ -451,7 +424,7 @@ def parse_gcode(datalines):
 
         if new_coord:
             if arc:
-                path.append(GArc(position=[x, y, z], ij= [i, j], arcdir = arcdir, feedrate=feed, rapid=rapid, command = l, line_number=linecount));
+                path.append(GArc(position=[x, y, z], ij= [i, j], feedrate=feed, rapid=rapid, command = l, line_number=linecount));
             else:
                 if new_rotation:
                     path.append(GPoint(position=[x, y, z], rotation=[ra, rb, rc], feedrate=feed, rapid=rapid, command=l, line_number=linecount));

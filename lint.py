@@ -51,9 +51,9 @@ class CAMGui(QtGui.QSplitter):
         self.tabs.addTab(self.editor, "GCode")
 
         self.camera = cameraviewer.CameraViewer()
-        self.camera.start()
 
         self.tabs.addTab(self.camera, "Camera")
+        self.camera.show()
 
         #self.centerWidget.addWidget(self.objectviewer)
         #self.centerWidget.addWidget(self.editor)
@@ -61,8 +61,7 @@ class CAMGui(QtGui.QSplitter):
         self.centerWidget.setSizes([4000,4000])
 
         self.addWidget(self.centerWidget)
-        #self.addWidget(self.pathtab)
-        self.tabs.addTab(self.pathtab, "Paths")
+        self.addWidget(self.pathtab)
         self.setSizes([100, 1200, 300])
         self.setWindowTitle('Machine Interface')
         self.updateGeometry()
@@ -80,6 +79,4 @@ if len(sys.argv)>1 and sys.argv[1]=="-f":
     camgui.showFullScreen()
 ## Start the Qt event loop
 app.exec_()
-
-camgui.camera.stop()
 

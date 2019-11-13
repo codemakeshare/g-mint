@@ -2,15 +2,14 @@ from abstractparameters import *
 
 from gcode import *
 
-
 from collections import OrderedDict
 class ThreadingTool(ItemWithParameters):
-    def __init__(self,  path=[],  model=None, viewUpdater=None,  tool=None, **kwargs):
+    def __init__(self,  path=[],  model=None,  tools=[],  viewUpdater=None,  **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
-
+        self.model = None #threading tool doesn't have a model
         self.viewUpdater = viewUpdater
         self.path = GCode()
-        self.tool = tool[0]
+        
         self.millingDirection = ChoiceParameter(parent=self,  name="Milling direction",  choices=["CW top-down (RH)", "CCW bottom-up (RH)", "CCW top-down (LH)", "CW bottom-up (LH)"],  value="CW top-down (RH)",  callback = self.generatePath)
 
         self.presets = OrderedDict([("M3",[3, 0.5,  0,  2.0]),
@@ -20,8 +19,9 @@ class ThreadingTool(ItemWithParameters):
                                     ("M8",[8, 1.25,  0, 4.0]),
                                     ("M10",[10, 1.5,  0, 4.0]),
                                     ("NPT 1/8",[0.38*25.4,  1.0/27.0*25.4,  1.7899,  4.0]),
-                                    ("NPT 1/4", [0.50250 * 25.4, 1.0 / 18.0 * 25.4, 1.7899, 4.0])])
+                                    ("NPT 1/4", [13.6, 1.0 / 18.0 * 25.4, 1.7899, 4.0])])
 
+        self.tool     =ChoiceParameter(parent=self,  name="Tool",  choices=tools,  value=tools[0])
         self.presetParameter = ChoiceParameter(parent=self,  name="Presets",  choices=self.presets.keys(),  value = "M6",  callback = self.loadPreset)
 
         self.startDepth=NumericalParameter(parent=self,  name='start depth',  value=0,  enforceRange=False,  step=0.1,  callback = self.generatePath)
@@ -30,12 +30,12 @@ class ThreadingTool(ItemWithParameters):
         self.xpos = NumericalParameter(parent=self,  name='x ',  value=0,   min=-2000,  max=2000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         self.ypos = NumericalParameter(parent=self,  name='y ',  value=0,   min=-2000,  max=2000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         
-        self.startDiameter = NumericalParameter(parent=self,  name='start diameter ',  value=8,   min=0,  max=1000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
-        self.diameter = NumericalParameter(parent=self,  name='final diameter ',  value=8,   min=0,  max=1000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
+        self.startDiameter = NumericalParameter(parent=self,  name='start diameter ',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.1,  callback = self.generatePath)
+        self.diameter = NumericalParameter(parent=self,  name='final diameter ',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.01,  callback = self.generatePath)
         self.diameterSteps = NumericalParameter(parent=self,  name='diameter steps ',  value=0,   min=0,  max=10,   step=1,  callback = self.generatePath)
         self.pitch=NumericalParameter(parent=self,  name='thread pitch',  value=1.0,  min=0.01,  max=5,  step=0.01,  callback = self.generatePath)
-        self.toolDiameter=NumericalParameter(parent=self,  name='tool tip diameter',  value=4.0,  min=0,  max=20,  step=0.1,  callback = self.generatePath)
-        self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.1,  callback = self.generatePath)
+        self.toolDiameter=NumericalParameter(parent=self,  name='tool tip diameter',  value=4.0,  min=0,  max=20,  step=0.01,  callback = self.generatePath)
+        self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01,  callback = self.generatePath)
         self.backoffPercentage=NumericalParameter(parent=self,  name='backoff percentage',  value=100.0,  min=-30,  max=100,  enforceRange=False,  step=5,  callback = self.generatePath)
 
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=5.0,  enforceRange=False,  step=1.0,  callback = self.generatePath)
@@ -44,7 +44,7 @@ class ThreadingTool(ItemWithParameters):
         self.saveButton=ActionParameter(parent=self,  name='Save to file',  callback=self.save)
         self.feedrate=NumericalParameter(parent=self,  name='default feedrate',  value=400.0,  min=1,  max=5000,  step=10)
         
-        self.parameters=[self.millingDirection, self.presetParameter,  [  self.xpos,  self.ypos],  self.startDepth, self.stopDepth,  self.startDiameter,  self.diameter, self.diameterSteps,  self.pitch,  self.toolDiameter,  self.coneAngle,  self.backoffPercentage,  self.traverseHeight, self.feedrate,  [self.filename,  self.saveButton] ]
+        self.parameters=[self.tool, self.millingDirection, self.presetParameter,  [  self.xpos,  self.ypos],  self.startDepth, self.stopDepth,  self.startDiameter,  self.diameter, self.diameterSteps,  self.pitch,  self.toolDiameter,  self.coneAngle,  self.backoffPercentage,  self.traverseHeight, self.feedrate,  [self.filename,  self.saveButton] ]
         self.generatePath(None)
 
     def setThread(self,  diameter,  pitch,  angle,  tool):
@@ -63,9 +63,11 @@ class ThreadingTool(ItemWithParameters):
         self.setThread(*params)
         
 
-    def generatePath(self,  parameter=None):
+    def generatePath(self,  parameter):
         self.path.outpaths=[]
         path = []
+        self.path.path=[]
+        self.patterns=[]
         cx=self.xpos.getValue()
         cy=self.ypos.getValue()
         pos = [cx,  cy, 0] 
@@ -126,8 +128,9 @@ class ThreadingTool(ItemWithParameters):
             
             if bottomup:
                 path.reverse()
-            self.path.path = path 
-            path=[]
+
+            self.path.path += path
+            path = []
             if self.diameterSteps.getValue()>0:
                 hole_radius+=(hole_diameter-self.startDiameter.getValue())/self.diameterSteps.getValue() / 2.0
             if cycles == int(self.diameterSteps.getValue()):
@@ -137,10 +140,12 @@ class ThreadingTool(ItemWithParameters):
             print("updating view")
             self.viewUpdater(self.path)
 
-    def getCompletePath(self):
-        self.generatePath()
-        return self.path
-
     def save(self):
         self.path.default_feedrate=self.feedrate.getValue()
         self.path.write(self.filename.getValue())
+
+    def calcPath(self):
+        return self.path
+
+    def getCompletePath(self):
+        return self.calcPath()

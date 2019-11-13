@@ -492,7 +492,7 @@ class CAM_Solid(Solid):
         
         for f in triangles:
             #check edges/vertices:
-            if  depth is None or f.maxHeight>depth:
+            if  f.maxHeight>depth:
                 #check point inside triangle
                 
                 n=normalize(crossproduct(f.vertices[1]-f.vertices[0], f.vertices[2]-f.vertices[0] ))#+\
@@ -544,7 +544,7 @@ class CAM_Solid(Solid):
         
         for f in triangles:
             #check edges/vertices:
-            if  depth is None or f.maxHeight>depth:
+            if  f.maxHeight>depth:
                 #check point inside triangle
                 # triangle normal vector
                 n=normalize(crossproduct(f.vertices[1]-f.vertices[0], f.vertices[2]-f.vertices[0] ))
