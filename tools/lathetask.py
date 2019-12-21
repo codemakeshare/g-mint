@@ -68,24 +68,48 @@ class LatheTask(ItemWithParameters):
         for s in slice:
             self.patterns.append(s)
 
-    def plunge(self, contour):
+    def plunge(self, contour, external=True):
         offset_path = []
         dir = 1
         start_x = self.leftBound.getValue()
+        retract = self.retract.getValue()
         if self.direction.getValue() == "right to left":
             start_x = self.rightBound.getValue()
             dir = -1
         x=start_x
         depth = self.sliceLevel.getValue()
         start = -self.traverseHeight.getValue()
+        innerBound = -self.innerBound.getValue()
+
         while (dir==-1 and x>self.leftBound.getValue()) or (dir==1 and x<self.rightBound.getValue()):
-            touchPoint = contour.intersectWithLine([x, start], [x, -self.innerBound.getValue()])
+            touchPoint = contour.intersectWithLine([x, start], [x, innerBound])
+
             offset_path.append(GPoint(position=(x, start, depth), rapid = True))
             if len(touchPoint) > 0:
-                offset_path.append(GPoint(position=(x, touchPoint[0][1], depth), rapid = False))
+                offset_path.append(GPoint(position=(x, min(touchPoint[0][1], innerBound), depth), rapid = False))
             else:
-                offset_path.append(GPoint(position=(x, -self.innerBound.getValue(), depth), rapid = False))
-            offset_path.append(GPoint(position=(x, start, depth), rapid = True))
+                offset_path.append(GPoint(position=(x, innerBound, depth), rapid = False))
+
+            # retract and follow contour
+            # assemble all points between touchpoint and retract point
+            x_coords = [x, x - dir * retract]
+            for subpoly in contour.polygons:
+                for p in subpoly:
+                    if (dir < 0 and p[0] >= x and p[0] <= x + retract) or (dir > 0 and p[0] <= x and p[0] >= x - retract):
+                        x_coords.append(p[0])
+                        x_coords.append(p[0] + 0.00000001)
+                        x_coords.append(p[0] - 0.00000001)
+
+            x_coords.sort(reverse = (dir>0))
+
+            for xfollow in x_coords:
+                touchPointFollow = contour.intersectWithLine([xfollow, start], [xfollow, innerBound])
+                if len(touchPointFollow) > 0:
+                    offset_path.append(GPoint(position=(touchPointFollow[0][0], min(touchPointFollow[0][1], innerBound), depth), rapid=False))
+                else:
+                    offset_path.append(GPoint(position=(xfollow, innerBound, depth), rapid=False))
+
+            offset_path.append(GPoint(position=(x - dir*retract, start, depth), rapid = True))
             x= x+dir*self.sideStep.getValue()
         offset_path.append(GPoint(position=(start_x, start, depth), rapid=True))
         return offset_path
@@ -103,7 +127,7 @@ class LatheTask(ItemWithParameters):
             y = -self.innerBound.getValue()
         while (external and y<-self.innerBound.getValue()) or (not external and y>-self.outerBound.getValue()):
             touchPoint = contour.intersectWithLine([start, y], [self.leftBound.getValue(), y])
-            touchPoint2 = contour.intersectWithLine([start, y-retract], [self.leftBound.getValue(), y-retract])
+
             if len(touchPoint)>0:
                 offset_path.append(GPoint(position=(start, y, depth), rapid = True))
                 offset_path.append(GPoint(position=(touchPoint[0][0],y, depth), rapid = False))
