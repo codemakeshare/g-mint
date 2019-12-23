@@ -191,6 +191,9 @@ class LatheTask(ItemWithParameters):
         else:
             x_coords.sort()
 
+        # go to start
+        offset_path.append(GPoint(position=(x_coords[0], -self.traverseHeight.getValue(), depth), rapid=True))
+
         for x in x_coords:
             touchPoint=[]
             if external:
@@ -204,6 +207,9 @@ class LatheTask(ItemWithParameters):
                     offset_path.append(GPoint(position=(x, -self.innerBound.getValue(), depth), rapid = False))
                 else:
                     offset_path.append(GPoint(position=(x, -self.outerBound.getValue(), depth), rapid=False))
+        # go to traverse depth
+        offset_path.append(GPoint(position=(x_coords[-1], -self.traverseHeight.getValue(), depth), rapid=True))
+
         return offset_path
 
     def follow(self, contour):
