@@ -276,7 +276,7 @@ class GCode:
         rapid = None
 
         current_feedrate = self.default_feedrate
-        current_gmode = "G0"
+        current_gmode = "G1"
         for p in complete_path:
             if isinstance(p, GPoint):
 
@@ -292,6 +292,9 @@ class GCode:
                         if self.laser_mode:
                             # in laser mode, issue a spindle on command after rapids
                             output += "M4 S1000\n"
+
+                        if p.gmode != current_gmode:
+                            current_gmode = p.gmode
 
                         output += current_gmode+" "
                 else:
