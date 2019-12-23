@@ -100,7 +100,7 @@ class LatheTask(ItemWithParameters):
                         x_coords.append(p[0] + 0.00000001)
                         x_coords.append(p[0] - 0.00000001)
 
-            x_coords.sort(reverse = (dir>0))
+            x_coords.sort(reverse = (dir>0) )  # sorting order depends on feed direction
 
             for xfollow in x_coords:
                 touchPointFollow = contour.intersectWithLine([xfollow, start], [xfollow, innerBound])
