@@ -3,7 +3,7 @@ MAVUE v0.1 (beta)
 Graphical inspector for MAVLink enabled embedded systems.
 
 Copyright (c) 2009-2014, Felix Schill
-All rights reserved. 
+All rights reserved.
 Refer to the file LICENSE.TXT which should be included in all distributions of this project.
 '''
 
@@ -24,7 +24,7 @@ class HorizontalBar(QWidget):
         self.setContentsMargins(0,0,0,0)
         self.layout.setSpacing(0)
 
-        
+
     def add(self,  widget,  signal,  action):
         self.layout.addWidget(widget)
         self.items.append(widget)
@@ -68,12 +68,12 @@ class PlainComboField(QComboBox):
     def updateValue(self,  value):
         if value!=None:
             self.combo.setCurrentIndex(self.choices.index(value))
-            
+
     def showPopup(self):
         if self.onOpenCallback!=None:
             self.onOpenCallback()
         QtWidgets.QComboBox.showPopup(self)
-         
+
     def updateChoices(self,  choices):
         changed=False
         for mc,nc in zip(self.choices,  choices):
@@ -82,12 +82,12 @@ class PlainComboField(QComboBox):
         if not changed:
             return
         self.clear()
-        
+
         self.choices = choices
         for t in choices:
             self.addItem(t)
-        
-        
+
+
 
 class LabeledComboField(QWidget):
     def __init__(self, parent=None,  label="", value=None,  choices=None):
@@ -100,10 +100,9 @@ class LabeledComboField(QWidget):
         self.choices = choices
         self.setContentsMargins(0,0,0,0)
         self.layout.setSpacing(0)
-
         for t in choices:
             self.combo.addItem(t)
-        if value!=None:
+        if value!=None and value in choices:
             self.combo.setCurrentIndex(choices.index(value))
         self.layout.addWidget(self.combo)
 
@@ -136,7 +135,6 @@ class LabeledTextField(QWidget):
         self.setLayout(self.layout)
         self.formatString=formatString
         self.editable=editable
-
         self.label=QtWidgets.QLabel(label)
         self.layout.addWidget(self.label)
         self.text=QtWidgets.QLineEdit(parent=self)
@@ -155,7 +153,7 @@ class LabeledTextField(QWidget):
         if parameter!=None:
             self.updateValue(parameter.getValue())
 
-    def updateValue(self,  value):
+    def updateValue(self,  value=None):
         if value!=None:
             # check if value is a multi-value object:
             if isinstance(value, (list,  frozenset,  tuple,  set,  bytearray)):
@@ -187,7 +185,7 @@ class LabeledProgressField(QWidget):
         self.progress.setMinimum(min)
         self.progress.setMaximum(max)
         self.progress.setValue(value)
-        
+
 class LabeledFileField(QWidget):
     def __init__(self, parent=None, editable=True,  label="", value=None,  fileSelectionPattern="All files (*.*)"):
         QWidget.__init__( self, parent=parent)
@@ -202,11 +200,11 @@ class LabeledFileField(QWidget):
         if value!=None:
             self.text.setText(formatString.format(value))
         self.layout.addWidget(self.text)
-        
+
         self.fileDialogButton=QtWidgets.QPushButton("Select...")
         self.fileDialogButton.clicked.connect(self.showDialog)
         self.layout.addWidget(self.fileDialogButton)
-        
+
     def update(self,  parameter):
         if parameter!=None:
             self.updateValue(parameter.getValue())
@@ -214,20 +212,19 @@ class LabeledFileField(QWidget):
     def updateValue(self,  value):
         if value!=None:
             self.text.setText(value)
-    
+
     def showDialog(self):
         filename=QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '',  self.fileSelectionPattern)
         print (filename)
         if filename!=None and len(filename[0])>0:
             self.updateValue(filename[0])
 
-
-
-class LabeledNumberField(QtWidgets.QWidget):
-    def __init__(self, parent=None, label="", min=None, max=None, value=0, step=1.0, slider=False):
-        QtWidgets.QWidget.__init__(self, parent=parent)
+class LabeledNumberField(QWidget):
+    def __init__(self, parent=None,  label="", min=None,  max=None,  value=0,  step=1.0,  slider=False):
+        QWidget.__init__( self, parent=parent)
         self.layout = QtWidgets.QHBoxLayout()
-        self.label = QtWidgets.QLabel(label)
+        self.setLayout(self.layout)
+        self.label=QtWidgets.QLabel(label)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -237,7 +234,7 @@ class LabeledNumberField(QtWidgets.QWidget):
             self.number.setMinimum(min)
         else:
             self.number.setMinimum(-10000000)
-        if max != None:
+        if max!=None:
             self.number.setMaximum(max)
         else:
             self.number.setMaximum(10000000)
@@ -279,7 +276,7 @@ class LabeledNumberField(QtWidgets.QWidget):
         if parameter != None:
             self.updateValue(parameter.getValue())
 
-    def updateValue(self, value):
+    def updateValue(self,  value):
         self.number.setValue(value)
         if self.slider is not None:
             self.slider.setValue(value)
@@ -288,8 +285,8 @@ class LabeledNumberField(QtWidgets.QWidget):
 class ToolPropertyWidget(QWidget):
     def updateParameter(self,  object=None,  newValue=None):
         object.updateValue(newValue)
-                
-        
+
+
     def __init__(self, parent,  tool):
         QWidget.__init__( self, parent=parent)
 
@@ -311,11 +308,11 @@ class ToolPropertyWidget(QWidget):
         self.parameters=dict()
         self.addToolWidgets(self.layout,  tool.parameters)
         self.layout.addStretch()
-        
-        
-        
+
+
+
     def addToolWidgets(self,  layout,  widgetlist):
-        
+
         # get editable parameters
         for object in widgetlist:
             p=object
@@ -327,13 +324,15 @@ class ToolPropertyWidget(QWidget):
                 self.addToolWidgets(horizontal_layout,  object)
                 layout.addWidget( horizontal_widget)
             else:
+                object.viewRefresh=self.update
                 if object.__class__.__name__=="TextParameter":
                     w=LabeledTextField(parent=self,  label=object.name,  editable=object.editable,  formatString=object.formatString)
                     self.parameters[p]=w
                     w.updateValue(object.value)
                     layout.addWidget(w)
                     if object.editable:
-                        w.text.textChanged.connect(object.updateValue)
+                        w.text.textChanged.connect(object.updateValueOnly)
+                        w.text.editingFinished.connect(object.commitValue)
 
                 if object.__class__.__name__=="FileParameter":
                     w=LabeledFileField(parent=self,  label=object.name,  editable=object.editable,  fileSelectionPattern=object.fileSelectionPattern)
@@ -348,7 +347,7 @@ class ToolPropertyWidget(QWidget):
                     self.parameters[p]=w
                     layout.addWidget(w)
                     if object.editable:
-                        w.number.valueChanged.connect(object.updateValue)
+                        w.number.valueChanged.connect(object.updateValueOnly)
 
                 if object.__class__.__name__=="ProgressParameter":
                     w=LabeledProgressField(parent=self,  label=object.name,  min=object.min, max=object.max,   value=object.getValue())
@@ -364,7 +363,7 @@ class ToolPropertyWidget(QWidget):
                     if object.editable:
                         w.combo.currentIndexChanged.connect(
                             object.updateValueByIndex)
-                    
+
                 if object.__class__.__name__=="ActionParameter":
                     w=QtWidgets.QPushButton(object.name)
                     self.parameters[p]=w
@@ -372,12 +371,12 @@ class ToolPropertyWidget(QWidget):
                     w.clicked.connect(object.callback)
                 object.viewRefresh=w.update
 
-                
+
         #layout.setMargin(0);
         layout.setSpacing(0);
         #layout.addStretch()
-        
-    def update(self):
+
+    def update(self, parameter=None):
         # get editable parameters
         for object in self.parameters.keys():
             w=self.parameters[object]
@@ -394,24 +393,24 @@ class ToolPropertyWidget(QWidget):
 
             if object.__class__.__name__=="NumericalParameter":
                 w.updateValue(object.value)
-                
+
             if object.__class__.__name__=="ChoiceParameter":
                 w.updateChoices(object.getChoiceStrings())
                 w.updateValue(object.getValueString())
-                
+
             if object.__class__.__name__=="ActionParameter":
                 None
 
 class ItemListModel(QtCore.QAbstractListModel):
-    def __init__(self, itemlist, parent=None, *args): 
-        
+    def __init__(self, itemlist, parent=None, *args):
+
         QtCore.QAbstractListModel.__init__(self, parent, *args)
         self.listdata = itemlist
- 
+
     def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self.listdata) 
- 
-    def data(self, index, role): 
+        return len(self.listdata)
+
+    def data(self, index, role):
         if not (index.isValid()  and index.row()<len(self.listdata)):
             return None
         if self.listdata[index.row()] is None:
@@ -443,17 +442,17 @@ class ItemListModel(QtCore.QAbstractListModel):
             if role == QtCore.Qt.CheckStateRole:
                 if index.row()<len(self.listdata):
                     self.listdata[index.row()].selected=(not self.listdata[index.row()].selected)
-                    self.dataChanged.emit(index, index)               
+                    self.dataChanged.emit(index, index)
                     return True
         return False
-        
+
     def addItem(self,  newItem):
         self.beginInsertRows(QtCore.QModelIndex(),  self.rowCount(),
                              self.rowCount()+1)
         self.listdata.append(newItem)
         self.endInsertRows()
         return self.index(self.rowCount()-1)
-        
+
 
     def removeRows(self,  row,  count,  parent):
         self.beginRemoveRows(QtCore.QModelIndex(),  self.rowCount(),  self.rowCount()+1)
@@ -462,7 +461,7 @@ class ItemListModel(QtCore.QAbstractListModel):
                 del self.listdata[i]
         self.endRemoveRows()
         return True
-        
+
     def insertRows(self, row, count, parent=QtCore.QModelIndex()):
         if parent.isValid(): return False
 
@@ -483,7 +482,7 @@ class ItemListModel(QtCore.QAbstractListModel):
 
         return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | \
                QtCore.Qt.ItemIsDropEnabled | QtCore.Qt.ItemIsEnabled
-        
+
     def supportedDragActions(self):
         return QtCore.Qt.MoveAction
 
@@ -512,7 +511,7 @@ class ListWidget(QWidget):
         self.layout.addWidget(QtWidgets.QLabel(title), 0, 0)   # button goes in upper-left
         self.layout.addWidget(self.listw, 1, 0)  # list widget goes in bottom-left
         self.propertyWidget = None
-        
+
         if addItems or removeItems:
             buttonwidget=QWidget()
             buttonLayout=QtWidgets.QHBoxLayout()
@@ -530,33 +529,33 @@ class ListWidget(QWidget):
             if removeItems:
                 self.removeBtn = QtWidgets.QPushButton('-')
                 self.removeBtn.setFixedWidth(30)
-                buttonLayout.addWidget(self.removeBtn)            
+                buttonLayout.addWidget(self.removeBtn)
                 self.removeBtn.clicked.connect(self.removeItem)
-            
+
             self.layout.addWidget(buttonwidget, 2, 0)   # button goes in upper-left
-        
-        
+
+
         if len(itemlist)>0:
             self.selectedTool=itemlist[0]
         else:
             self.selectedTool=None
-        
+
         if self.selectedTool!=None:
             self.propertyWidget=ToolPropertyWidget(parent=self, tool=self.selectedTool)
-            self.layout.addWidget(self.propertyWidget, 0, 1,  3,  1)  
-        
+            self.layout.addWidget(self.propertyWidget, 0, 1,  3,  1)
+
     def respondToSelect(self,  index):
         s_index=self.listw.currentIndex()
         self.selectedTool=self.listmodel.listdata[s_index.row()]
         if self.selectedTool!=None:
             if self.propertyWidget is not None:
-                self.layout.removeWidget(self.propertyWidget)  
+                self.layout.removeWidget(self.propertyWidget)
                 self.propertyWidget.close()
             self.propertyWidget=ToolPropertyWidget(parent=self, tool=self.selectedTool)
-            self.layout.addWidget(self.propertyWidget, 0, 1,  3,  1)  
+            self.layout.addWidget(self.propertyWidget, 0, 1,  3,  1)
             if self.on_select_cb!=None:
                 self.on_select_cb(self.selectedTool)
-            
+
     def getCheckedItems(self):
         checkedItems = []
         for index in range(self.listw.model().rowCount()):
@@ -564,7 +563,7 @@ class ListWidget(QWidget):
                 checkedItems.append(self.listmodel.listdata[index])
         return checkedItems
 
-    
+
     def addItem(self,  dummy=None, addExistingItems=True,  **creationArgs):
         if isinstance(self.itemclass,  dict):
             index = self.widgetSelect.currentIndex()
@@ -610,17 +609,21 @@ class ListWidget(QWidget):
             print(e)
             traceback.print_exc()
         return None
-        
+
     def findItem(self,  name):
         for item in self.listmodel.listdata:
             if name==item.name.value:
                 return item
         return None
-        
+
     def removeItem(self):
+        if self.propertyWidget is not None:
+            self.layout.removeWidget(self.propertyWidget)
+            self.propertyWidget.close()
+
         itemindex=self.listw.selectedIndexes()
         if len(itemindex)==0:
             return
         self.listmodel.removeRows(itemindex[0].row(),  1,  itemindex[0])
-        
-        
+
+

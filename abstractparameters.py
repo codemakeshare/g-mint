@@ -61,33 +61,43 @@ class ItemWithParameters:
             print("invalid setstring")
 
 class EditableParameter:
-    
-    def __init__(self,  parent=None,  name="",  editable=True,   callback=None,  viewRefresh=None):
+
+    def __init__(self,  parent=None,  name="",  editable=True,   callback=None,  viewRefresh=None,  active=True):
         self.name=name
         self.parent=parent
         self.value=None
-        self.selected=False    
+        self.selected=False
         self.editable=editable
         self.callback=callback
         self.viewRefresh = viewRefresh
-    
-    def updateValueQT(self,  value):
+        self.active=active
+
+    def updateValueOnly(self,  value):
         #print "new value",  value
         self.value=value
         if self.callback!=None:
             self.callback(self)
-            
+
     def updateValue(self,  value):
         #print "new value",  value
         self.value=value
         if self.callback!=None:
             self.callback(self)
-        
+
+    def commitValue(self):
+        if self.callback != None:
+            self.callback(self)
+
         if self.viewRefresh!=None:
             self.viewRefresh(self)
 
     def updateValueByString(self,  value):
         self.updateValue(value)
+
+    def setActive(self,  active):
+        self.active=active
+        if self.viewRefresh!=None:
+            self.viewRefresh(self)
 
     def getValue(self):
         return self.value
@@ -167,9 +177,13 @@ class ProgressParameter(EditableParameter):
     def updateValueByString(self,  value):
         self.updateValue(float(value))
 
+class Choice:
+    def __init__(self, name="", value=None):
+        self.name=name
+        self. value=value
 
 class ChoiceParameter(EditableParameter):
-    def __init__(self, value=None, choices=None, **kwargs):
+    def __init__(self,  value=None, choices=None, **kwargs):
         EditableParameter.__init__(self, **kwargs)
         self.value = value
         self.choices = choices
@@ -200,7 +214,11 @@ class ChoiceParameter(EditableParameter):
 
     def getValue(self):
         c = self.value
-        return c
+        if "name" in dir(c) and "value" in dir(c):
+            return c.value
+        else:
+            return c
+
 
     def getIndexByValue(self, value):
         for i in range(0, len(self.choices)):
@@ -213,8 +231,8 @@ class ChoiceParameter(EditableParameter):
                     return i
         return -1
 
-    def updateValue(self, value):
-        # print(self.name, value)
+    def updateValue(self,  value):
+        #print(self.name, value)
         for c in self.choices:
             if "name" in dir(c) and "value" in dir(c):
                 if c.value == value:
@@ -223,40 +241,40 @@ class ChoiceParameter(EditableParameter):
             else:
                 if c == value:
                     self.value = c
-                    # print("set ", self.name, "to", self.value)
+                    #print("set ", self.name, "to", self.value)
                     break
         if self.callback != None:
             self.callback(self)
         if self.viewRefresh != None:
             self.viewRefresh(self)
 
-    def updateValueByString(self, value):
-        # print "update value by string:", value
+    def updateValueByString(self,  value):
+        #print "update value by string:", value
         strings = self.getChoiceStrings()
         for i in range(0, len(self.choices)):
             s = strings[i]
             if s == value:
-                print(i, s)
+                print(i,  s)
                 self.value = self.choices[i]
         if self.callback != None:
             self.callback(self)
 
         if self.viewRefresh != None:
-            self.viewRefresh(self)
-        # print(self.value)
+            self.viewRefresh()
+        #print(self.value)
 
     def updateValueByIndex(self, index):
-        self.value = list(self.choices)[index]
+        self.value = self.choices[index]
 
         if self.callback != None:
             self.callback(self)
 
         if self.viewRefresh != None:
-            self.viewRefresh(self)
-        # print(self.value)
+            self.viewRefresh()
+        #print(self.value)
 
 
 class ActionParameter(EditableParameter):
     def __init__(self,   **kwargs):
         EditableParameter.__init__(self, **kwargs)
-        
+
