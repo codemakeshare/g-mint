@@ -41,10 +41,15 @@ def run_init(task_options):
 class MillTask(ItemWithParameters):
     def __init__(self,  model=None,  tools=[], viewUpdater=None, **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
-        self.model=model.object
+        self.model = None
+        if model is not None:
+            self.model=model.object
         self.patterns=[]
         self.path=None
-        self.tool=ChoiceParameter(parent=self,  name="Tool",  choices=tools,  value=tools[0])
+        selectedTool = None
+        if len(tools)>0:
+            selectedTool = tools[0]
+        self.tool = ChoiceParameter(parent=self,  name="Tool",  choices=tools,  value=selectedTool)
         self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+10,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
@@ -333,7 +338,10 @@ class SliceTask(MillTask):
         
         self.operation=ChoiceParameter(parent=self,  name="Operation",  choices=["Slice",  "Slice & Drop",  "Outline",  "Medial Lines"],  value="Slice")
         self.direction=ChoiceParameter(parent=self,  name="Direction",  choices=["inside out",  "outside in"],  value="inside out")
-        self.model=model.object
+        self.model = None
+        if model is not None:
+            self.model=model.object
+
         self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.1)
         self.radialOffset = NumericalParameter(parent=self, name='radial offset', value=0.0, min=-100, max=100, step=0.01)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)

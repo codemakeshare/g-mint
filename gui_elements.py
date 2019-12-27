@@ -187,9 +187,10 @@ class LabeledProgressField(QWidget):
         self.progress.setValue(value)
 
 class LabeledFileField(QWidget):
-    def __init__(self, parent=None, editable=True,  label="", value=None,  fileSelectionPattern="All files (*.*)"):
+    def __init__(self, parent=None, editable=True,  label="", value=None, type="open",  fileSelectionPattern="All files (*.*)"):
         QWidget.__init__( self, parent=parent)
         self.layout = QtWidgets.QHBoxLayout()
+        self.type = type
         self.setLayout(self.layout)
         self.fileSelectionPattern=fileSelectionPattern
         self.editable=editable
@@ -214,7 +215,12 @@ class LabeledFileField(QWidget):
             self.text.setText(value)
 
     def showDialog(self):
-        filename=QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '',  self.fileSelectionPattern)
+        filename = None
+        if self.type == "open":
+            filename=QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '',  self.fileSelectionPattern)
+        if self.type == "save":
+            filename=QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', '',  self.fileSelectionPattern)
+
         print (filename)
         if filename!=None and len(filename[0])>0:
             self.updateValue(filename[0])
@@ -282,6 +288,45 @@ class LabeledNumberField(QWidget):
             self.slider.setValue(value)
 
 
+def parameterWidgetFactory(object, parent = None):
+    w = None
+
+    if object.__class__.__name__ == "TextParameter":
+        w = LabeledTextField(parent=parent, label=object.name, editable=object.editable, formatString=object.formatString)
+
+        w.updateValue(object.value)
+        if object.editable:
+            w.text.textChanged.connect(object.updateValueOnly)
+            w.text.editingFinished.connect(object.commitValue)
+
+    if object.__class__.__name__ == "FileParameter":
+        w = LabeledFileField(parent=parent, label=object.name, editable=object.editable, type = object.type, fileSelectionPattern=object.fileSelectionPattern)
+        w.updateValue(object.value)
+        if object.editable:
+            w.text.textChanged.connect(object.updateValue)
+
+    if object.__class__.__name__ == "NumericalParameter":
+        w = LabeledNumberField(parent=parent, label=object.name, min=object.min, max=object.max, value=object.getValue(), step=object.step)
+
+        if object.editable:
+            w.number.valueChanged.connect(object.updateValueOnly)
+
+    if object.__class__.__name__ == "ProgressParameter":
+        w = LabeledProgressField(parent=parent, label=object.name, min=object.min, max=object.max, value=object.getValue())
+
+    if object.__class__.__name__ == "ChoiceParameter":
+        w = LabeledComboField(parent=parent, label=object.name, value=object.getValueString(),
+                              choices=object.getChoiceStrings())
+        if object.editable:
+            w.combo.currentIndexChanged.connect(
+                object.updateValueByIndex)
+
+    if object.__class__.__name__ == "ActionParameter":
+        w = QtWidgets.QPushButton(object.name)
+        w.clicked.connect(object.callback)
+    object.viewRefresh = w.update
+    return w
+
 class ToolPropertyWidget(QWidget):
     def updateParameter(self,  object=None,  newValue=None):
         object.updateValue(newValue)
@@ -317,60 +362,21 @@ class ToolPropertyWidget(QWidget):
         for object in widgetlist:
             p=object
 
-            if isinstance(object,  (list)):
-                horizontal_widget=QWidget()
-                horizontal_layout=QtWidgets.QHBoxLayout()
+            w = None
+            if isinstance(object, (list)):
+                horizontal_widget = QWidget()
+                horizontal_layout = QtWidgets.QHBoxLayout()
                 horizontal_widget.setLayout(horizontal_layout)
-                self.addToolWidgets(horizontal_layout,  object)
-                layout.addWidget( horizontal_widget)
+                self.addToolWidgets(horizontal_layout, object)
+                # layout.addWidget(horizontal_widget)
             else:
-                object.viewRefresh=self.update
-                if object.__class__.__name__=="TextParameter":
-                    w=LabeledTextField(parent=self,  label=object.name,  editable=object.editable,  formatString=object.formatString)
-                    self.parameters[p]=w
-                    w.updateValue(object.value)
-                    layout.addWidget(w)
-                    if object.editable:
-                        w.text.textChanged.connect(object.updateValueOnly)
-                        w.text.editingFinished.connect(object.commitValue)
+                w = parameterWidgetFactory(object, parent = self)
+                self.parameters[p] = w
+                layout.addWidget(w)
+                object.viewRefresh = self.update
 
-                if object.__class__.__name__=="FileParameter":
-                    w=LabeledFileField(parent=self,  label=object.name,  editable=object.editable,  fileSelectionPattern=object.fileSelectionPattern)
-                    self.parameters[p]=w
-                    w.updateValue(object.value)
-                    layout.addWidget(w)
-                    if object.editable:
-                        w.text.textChanged.connect(object.updateValue)
-
-                if object.__class__.__name__=="NumericalParameter":
-                    w=LabeledNumberField(parent=self, label=object.name,  min=object.min, max=object.max,   value=object.getValue(),  step=object.step)
-                    self.parameters[p]=w
-                    layout.addWidget(w)
-                    if object.editable:
-                        w.number.valueChanged.connect(object.updateValueOnly)
-
-                if object.__class__.__name__=="ProgressParameter":
-                    w=LabeledProgressField(parent=self,  label=object.name,  min=object.min, max=object.max,   value=object.getValue())
-                    self.parameters[p]=w
-                    layout.addWidget(w)
-
-
-                if object.__class__.__name__=="ChoiceParameter":
-                    w=LabeledComboField(parent=self,  label=object.name,  value=object.getValueString(),
-                                        choices=object.getChoiceStrings())
-                    self.parameters[p]=w
-                    layout.addWidget(w)
-                    if object.editable:
-                        w.combo.currentIndexChanged.connect(
-                            object.updateValueByIndex)
-
-                if object.__class__.__name__=="ActionParameter":
-                    w=QtWidgets.QPushButton(object.name)
-                    self.parameters[p]=w
-                    layout.addWidget(w)
-                    w.clicked.connect(object.callback)
-                object.viewRefresh=w.update
-
+            if w is not None:
+                self.parameters[p] = w
 
         #layout.setMargin(0);
         layout.setSpacing(0);
@@ -562,6 +568,9 @@ class ListWidget(QWidget):
             if self.listw.model().isChecked(index):
                 checkedItems.append(self.listmodel.listdata[index])
         return checkedItems
+
+    def getItems(self):
+        return [i for i in self.listmodel.listdata]
 
 
     def addItem(self,  dummy=None, addExistingItems=True,  **creationArgs):

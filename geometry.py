@@ -100,6 +100,10 @@ def pmin(x,y):
 def pmax(x,y):
     return [max(x[i], y[i])for i in range(0,len(x))]
 
+# checks if point p is left (or right) of line a to b (2D). returns 1 if left, -1 if right, 0 if colinear
+def isLeft(a, b, p) :
+    return ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]));
+
 def SameSide(p1,p2, a,b):
     cp1 = crossproduct(b-a, p1-a)
     cp2 = crossproduct(b-a, p2-a)

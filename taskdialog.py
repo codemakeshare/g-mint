@@ -11,12 +11,14 @@ from tools.lathethreadingtool import *
 import traceback
 from gui_elements import *
 
+import json
 
 class TaskDialog(QtGui.QWidget):
     def __init__(self, modelmanager, tools, path_output):
         QtGui.QWidget.__init__(self)
         self.path_output = path_output
         self.modelmanager = modelmanager
+        self.tools = tools
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
         self.availableTasks = OrderedDict([("Slice", SliceTask), ("Pattern", PatternTask), ("lathe tool", LatheTask),("lathe threading", LatheThreadingTool), ("Boring", BoringTool), ("Threading",
@@ -29,12 +31,26 @@ class TaskDialog(QtGui.QWidget):
         create_pattern_btn = QtGui.QPushButton("generate pattern")
         start_one_btn = QtGui.QPushButton("start selected")
         start_all_btn = QtGui.QPushButton("start all")
+
+        self.filename = FileParameter(name = "Project file", type = "save", value="")
+        self.projectFileWidget = parameterWidgetFactory(self.filename, parent = self)
+
+        save_btn = QtGui.QPushButton("save")
+        save_btn.clicked.connect(self.saveTasks)
+        load_btn = QtGui.QPushButton("load")
+        load_btn.clicked.connect(self.loadTasks)
+
         self.layout.addWidget(create_pattern_btn, 1, 1)
         self.layout.addWidget(start_one_btn, 2, 0)
         self.layout.addWidget(start_all_btn, 2, 1)
+        self.layout.addWidget(save_btn, 3, 0)
+        self.layout.addWidget(load_btn, 3, 1)
+        self.layout.addWidget(self.projectFileWidget, 4, 0)
 
         create_pattern_btn.clicked.connect(self.generatePattern)
         start_one_btn.clicked.connect(self.startSelectedTask)
+
+        self.lastFilename = None
 
     def display_pattern(self, selectedTool):
         pattern = []
@@ -74,3 +90,31 @@ class TaskDialog(QtGui.QWidget):
         except Exception as e:
             print(e)
             traceback.print_exc()
+
+    def saveTasks(self):
+        filename = self.filename.getValue()
+        print("saving File:", filename)
+
+        items = self.tasktab.getItems()
+        exportedItems = [i.toDict() for i in items]
+        print(exportedItems)
+        jdata = json.dumps(exportedItems)
+        with open(filename+".json", "w") as file:
+            file.write(jdata)
+
+    def loadTasks(self):
+        data = None
+        with open(self.filename.getValue()+".json") as file:
+            data = file.read()
+        importedData = json.loads(data)
+        classDict = {}
+        for name, c in self.availableTasks.items():
+            print(name, str(c.__name__), c)
+            classDict[str(c.__name__)] =  c
+        print (classDict)
+
+        for i in importedData:
+            item = buildItemFromDict(i, classDict) (name = i["name"], tools = self.tools, model = self.modelmanager)
+            item.restoreParametersFromDict(i["parameters"])
+            print(item)
+            self.tasktab.listmodel.addItem(item)

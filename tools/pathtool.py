@@ -176,13 +176,18 @@ class PathTool(ItemWithParameters):
                         if len(pathlet)>min_point_count:
                             # create arc
                             print("making arc", len(pathlet))
-                            if scapro(diff(pathlet[int(len(pathlet)/2)].position, pathlet[0].position), diff(center, pathlet[0].position)) > 0:
+                            #center_side = scapro(diff(pathlet[int(len(pathlet)/2)].position, pathlet[0].position), diff(center, pathlet[0].position))
+                            center_side =  isLeft(pathlet[0].position, pathlet[int(len(pathlet)/2)].position, center)
+                            if center_side < 0:
                                 direction = "02"
+                                print(direction, center_side)
                             else:
                                 direction = "03"
+                                print(direction, center_side)
+
                             arc = GArc(position = pathlet[-1].position,
                                        ij = [center[0] - pathlet[0].position[0], center[1]-pathlet[0].position[1]],
-                                       arcdir=direction)
+                                       arcdir = direction)
                             smoothPath.append(pathlet[0])
                             smoothPath.append(arc)
                             center = None
