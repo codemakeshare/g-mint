@@ -32,9 +32,6 @@ class TaskDialog(QtGui.QWidget):
         start_one_btn = QtGui.QPushButton("start selected")
         start_all_btn = QtGui.QPushButton("start all")
 
-        self.filename = FileParameter(name = "Project file", type = "save", value="")
-        self.projectFileWidget = parameterWidgetFactory(self.filename, parent = self)
-
         save_btn = QtGui.QPushButton("save")
         save_btn.clicked.connect(self.saveTasks)
         load_btn = QtGui.QPushButton("load")
@@ -45,7 +42,6 @@ class TaskDialog(QtGui.QWidget):
         self.layout.addWidget(start_all_btn, 2, 1)
         self.layout.addWidget(save_btn, 3, 0)
         self.layout.addWidget(load_btn, 3, 1)
-        self.layout.addWidget(self.projectFileWidget, 4, 0)
 
         create_pattern_btn.clicked.connect(self.generatePattern)
         start_one_btn.clicked.connect(self.startSelectedTask)
@@ -92,19 +88,26 @@ class TaskDialog(QtGui.QWidget):
             traceback.print_exc()
 
     def saveTasks(self):
-        filename = self.filename.getValue()
+        filename, pattern = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', '', "*.json")
+        if len(filename)==0:
+            return
+
         print("saving File:", filename)
 
         items = self.tasktab.getItems()
         exportedItems = [i.toDict() for i in items]
         print(exportedItems)
         jdata = json.dumps(exportedItems)
-        with open(filename+".json", "w") as file:
+        with open(filename, "w") as file:
             file.write(jdata)
 
     def loadTasks(self):
+        filename, pattern = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', "*.json")
+        if len(filename)==0:
+            return
+
         data = None
-        with open(self.filename.getValue()+".json") as file:
+        with open(filename) as file:
             data = file.read()
         importedData = json.loads(data)
         classDict = {}
