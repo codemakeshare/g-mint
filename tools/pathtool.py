@@ -47,6 +47,7 @@ class PathTool(ItemWithParameters):
         self.laser_mode = NumericalParameter(parent=self,  name='laser mode',  value=0.0,  min=0.0,  max=1.0,  enforceRange=True,  step=1.0)
         self.depthStepping=ActionParameter(parent=self,  name='Apply depth stepping',  callback=self.applyDepthStep)
         self.removeNonCutting=ActionParameter(parent=self,  name='Remove non-cutting points',  callback=self.removeNoncuttingPoints)
+        self.invertPath=ActionParameter(parent=self,  name='invert path',  callback=self.applyInvertPath)
         self.clean=ActionParameter(parent=self,  name='clean paths',  callback=self.cleanColinear)
         self.smooth=ActionParameter(parent=self,  name='smooth path',  callback=self.fitArcs)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
@@ -72,7 +73,8 @@ class PathTool(ItemWithParameters):
                                     self.traverseHeight,   
                                     self.laser_mode, 
                                     [self.depthStepping,   
-                                    self.removeNonCutting],  
+                                    self.removeNonCutting,
+                                    self.invertPath],
                                     [self.clean, self.smooth, self.precision],
                                     
                                     [self.trochoidalDiameter,  self.trochoidalStepover], 
@@ -92,7 +94,35 @@ class PathTool(ItemWithParameters):
         self.outpaths=[self.path]
         self.updateView()
 
-    
+
+    def applyInvertPath(self):
+        if len(self.outpaths)==0:
+            self.path.outpaths=GCode()
+            self.outpaths.combinePath(self.path.path)
+
+        inpath = self.outpaths
+
+        pathlet = []
+        invertedPath = []
+        preamble = []
+
+        for path in inpath:
+            for p in path.path:
+                if p.position is not None:
+                    break
+                else:
+                    print("pre:", p.to_output())
+                    preamble.append(p)
+        invertedPath+=preamble
+
+        for path in reversed(inpath):
+            for p in reversed(path.get_draw_path(interpolate_arcs=True)):
+                if p.position is not None: #only append positional points
+                    "point:", p.to_output()
+                    invertedPath.append(p)
+        self.outpaths = [GCode(path=invertedPath)]
+        self.updateView()
+
     def cleanColinear(self):
         if len(self.outpaths)==0:
             self.path.outpaths=GCode()
@@ -139,6 +169,8 @@ class PathTool(ItemWithParameters):
         direction = "02"
         for path in inpath:
             for p in path.path:
+                if p.position is None:
+                    continue
                 if len(pathlet) < 3: #need at least 3 points to start circle
                     pathlet.append(p)
                 # compute center with the first 3 points

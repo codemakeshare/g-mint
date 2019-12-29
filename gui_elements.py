@@ -368,7 +368,7 @@ class ToolPropertyWidget(QWidget):
                 horizontal_layout = QtWidgets.QHBoxLayout()
                 horizontal_widget.setLayout(horizontal_layout)
                 self.addToolWidgets(horizontal_layout, object)
-                # layout.addWidget(horizontal_widget)
+                layout.addWidget(horizontal_widget)
             else:
                 w = parameterWidgetFactory(object, parent = self)
                 self.parameters[p] = w
