@@ -7,43 +7,6 @@ from tools import *
 from solids import *
 
 
-@staticmethod
-def rounded_cylinder(rows, cols, radius=[1.0, 1.0, 0.0], length=1.0, offset=False):
-    """
-    Return a MeshData instance with vertexes and faces computed
-    for a cylindrical surface.
-    The cylinder may be tapered with different radii at each end (truncated cone)
-    """
-    verts = np.empty((rows + 1, cols, 3), dtype=float)
-    if isinstance(radius, int):
-        radius = [radius, radius, 0.0]  # convert to list
-    ## compute vertexes
-    th = np.linspace(2 * np.pi, 0, cols).reshape(1, cols)
-    r = np.linspace(radius[0], radius[1], num=rows + 1, endpoint=True).reshape(rows + 1, 1)  # radius as a function of z
-    verts[..., 2] = np.linspace(0, length, num=rows + 1, endpoint=True).reshape(rows + 1, 1)  # z
-    for row in range(rows + 1):
-        if row < rows / 3:
-            verts[row, 2] = float(row) / (rows / 3.0) * radius[3]
-            r[row] *= cos((radius[3] - verts[row, 2]))
-        else:
-            verts[row, 2] = float(row) / (2 * rows / 3.0) * length + radius[3]
-
-    if offset:
-        th = th + ((np.pi / cols) * np.arange(rows + 1).reshape(rows + 1, 1))  ## rotate each row by 1/2 column
-    verts[..., 0] = r * np.cos(th)  # x = r cos(th)
-    verts[..., 1] = r * np.sin(th)  # y = r sin(th)
-    verts = verts.reshape((rows + 1) * cols, 3)  # just reshape: no redundant vertices...
-    ## compute faces
-    faces = np.empty((rows * cols * 2, 3), dtype=np.uint)
-    rowtemplate1 = ((np.arange(cols).reshape(cols, 1) + np.array([[0, 1, 0]])) % cols) + np.array([[0, 0, cols]])
-    rowtemplate2 = ((np.arange(cols).reshape(cols, 1) + np.array([[0, 1, 1]])) % cols) + np.array([[cols, 0, cols]])
-    for row in range(rows):
-        start = row * cols * 2
-        faces[start:start + cols] = rowtemplate1 + row * cols
-        faces[start + cols:start + (cols * 2)] = rowtemplate2 + row * cols
-
-    return gl.MeshData(vertexes=verts, faces=faces)
-
 
 class ObjectViewer(QtGui.QWidget):
     def __init__(self, parent=None, editor=None):
@@ -267,7 +230,7 @@ class ObjectViewer(QtGui.QWidget):
                 new_z = radius[0]-cos(ball_section_pos*math.pi/2.0) * radius[0]
                 verts[row,:,2] = new_z
                 r[row,0] = radius[0] * sin(ball_section_pos*math.pi/2.0)
-                print(new_z, radius[0] * sin(ball_section_pos*math.pi/2.0))
+                #print(new_z, radius[0] * sin(ball_section_pos*math.pi/2.0))
             else:
                 verts[row, 2] = float(row-rows/3) / (2*rows / 3.0) * length + radius[2]
                 #r[row, 0] = 1
@@ -288,13 +251,58 @@ class ObjectViewer(QtGui.QWidget):
 
         return gl.MeshData(vertexes=verts, faces=faces)
 
+    @staticmethod
+    def flat_cylinder(rows, cols, radius=[1.0, 1.0, 0.0], length=1.0, offset=False):
+        """
+        Return a MeshData instance with vertexes and faces computed
+        for a cylindrical surface.
+        The cylinder may be tapered with different radii at each end (truncated cone)
+        """
+        verts = np.empty((rows + 1, cols, 3), dtype=float)
+        if isinstance(radius, int):
+            radius = [radius, radius, 0.0]  # convert to list
+        ## compute vertexes
+        th = np.linspace(2 * np.pi, 0, cols).reshape(1, cols)
+        r = np.linspace(radius[0], radius[1], num=rows + 1, endpoint=True).reshape(rows + 1, 1)  # radius as a function of z
+        verts[..., 2] = np.linspace(0, length, num=rows + 1, endpoint=True).reshape(rows + 1, 1)  # z
+
+        r[0,0] = 0
+        verts[1, :, 2] = 0
+        if offset:
+            th = th + ((np.pi / cols) * np.arange(rows + 1).reshape(rows + 1, 1))  ## rotate each row by 1/2 column
+        verts[..., 0] = r * np.cos(th)  # x = r cos(th)
+        verts[..., 1] = r * np.sin(th)  # y = r sin(th)
+        verts = verts.reshape((rows + 1) * cols, 3)  # just reshape: no redundant vertices...
+        ## compute faces
+        faces = np.empty((rows * cols * 2, 3), dtype=np.uint)
+        rowtemplate1 = ((np.arange(cols).reshape(cols, 1) + np.array([[0, 1, 0]])) % cols) + np.array([[0, 0, cols]])
+        rowtemplate2 = ((np.arange(cols).reshape(cols, 1) + np.array([[0, 1, 1]])) % cols) + np.array([[cols, 0, cols]])
+        for row in range(rows):
+            start = row * cols * 2
+            faces[start:start + cols] = rowtemplate1 + row * cols
+            faces[start + cols:start + (cols * 2)] = rowtemplate2 + row * cols
+
+        return gl.MeshData(vertexes=verts, faces=faces)
+
     def showTool(self, tool):
         print("showing tool")
         if self.gl_cutting_tool is not None:
             self.w.removeItem(self.gl_cutting_tool)
-        self.cutting_tool = ObjectViewer.rounded_cylinder(30, 30, radius=[tool.diameter.getValue()/2.0, tool.diameter.getValue()/2.0, tool.diameter.getValue()/2.0], length=10.0)
-        self.gl_cutting_tool = gl.GLMeshItem(meshdata=self.cutting_tool, color=(0.8, 0.8, 0.8, 1.0), smooth=True, computeNormals=True, drawEdges=False, shader='shaded', glOptions='translucent')
-        self.w.addItem(self.gl_cutting_tool)
+            self.gl_cutting_tool = None
+        self.cutting_tool = None
+        if tool.shape.getValue().startswith("ball"):
+            self.cutting_tool = ObjectViewer.rounded_cylinder(30, 30, radius=[tool.diameter.getValue()/2.0, tool.diameter.getValue()/2.0, 0], length=30.0)
+        if tool.shape.getValue().startswith("slot"):
+            self.cutting_tool = ObjectViewer.flat_cylinder(3, 30, radius=[tool.diameter.getValue() / 2.0, tool.diameter.getValue() / 2.0, 0], length=30.0)
+
+        if self.cutting_tool is not None:
+
+            self.gl_cutting_tool = gl.GLMeshItem(meshdata=self.cutting_tool, color=(0.8, 0.8, 0.8, 1.0), smooth=True, computeNormals=True, drawEdges=False, shader='shaded', glOptions='translucent')
+            self.w.addItem(self.gl_cutting_tool)
+        else:
+            if self.gl_cutting_tool is not None:
+                self.w.removeItem(self.gl_cutting_tool)
+                self.gl_cutting_tool = None
 
     def updatePathPlot(self, width=0.1, updateEditor=True):
         end_index = self.path_slider.value()
