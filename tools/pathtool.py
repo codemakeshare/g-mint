@@ -458,7 +458,11 @@ class PathTool(ItemWithParameters):
             cutting = True
             plunging = False
             for cp in self.path.path[0:p_index]:
-                if lastPoint is not None and lastPoint.position[2]>p.position[2] and geometry.dist(p.position, cp.position) <min(radius, cp.dist_from_model):
+                if cp.position is None or p.position is None:
+                    continue;
+
+                if lastPoint is not None and lastPoint.position[2]>p.position[2] \
+                        and geometry.dist(p.position, cp.position) < min(i for i in [radius, cp.dist_from_model] if i is not None ):
                     cutting = False
 
             if p.rapid or p.order>self.trochoidalOrder.getValue()  or p.dist_from_model< self.trochoidalOuterDist.getValue() or not cutting :

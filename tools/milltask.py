@@ -439,7 +439,7 @@ class SliceTask(MillTask):
             for poly in levelOutput.polygons:
                 segment = []
                 for p in poly:
-                    local_radius, cp = input.pointDistance(p)
+                    local_radius, cp, subpoly, ci= input.pointDistance(p)
                     segment.append(GPoint(position=p,  dist_from_model = local_radius))
                 # check that start of segment has a larger radius than end (to go inside-out)
  
