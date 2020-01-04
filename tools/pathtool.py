@@ -314,16 +314,19 @@ class PathTool(ItemWithParameters):
             currentDepth = min([p.position[2] for p in segment]) #get deepest point in segment
             while currentDepth < previousCutDepth:
                 p = segment[pos]
-                nd = max(p.position[2], currentDepthLimit)
-                is_in_contact = True
-                dist = dist2D(segment[pos].position, segment[(pos+1)%sl].position)
-                currentDepth += dist * rampdown # spiral up
+                #ignore rapids during ramp-down
+                if not p.rapid:
 
-                if (nd<currentDepth):
-                    nd = currentDepth
-                    is_in_contact=False
-                ramp.append(GPoint(position=(p.position[0], p.position[1], nd), rapid=p.rapid,
-                                     inside_model=p.inside_model, in_contact=is_in_contact))
+                    nd = max(p.position[2], currentDepthLimit)
+                    is_in_contact = True
+                    dist = dist2D(segment[pos].position, segment[(pos+1)%sl].position)
+                    currentDepth += dist * rampdown # spiral up
+
+                    if (nd<currentDepth):
+                        nd = currentDepth
+                        is_in_contact=False
+                    ramp.append(GPoint(position=(p.position[0], p.position[1], nd), rapid=p.rapid,
+                                         inside_model=p.inside_model, in_contact=is_in_contact))
 
                 pos = (pos-1+sl) % sl
 
