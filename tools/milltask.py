@@ -545,13 +545,14 @@ class SliceTask(MillTask):
                         [bound_max[0], bound_max[1],  sliceLevel],  
                         [bound_max[0], bound_min[1] ,  sliceLevel]]
             patternLevels[sliceLevel].append(bb)
-            
+            trimPoly = PolygonGroup([bb], precision = self.precision.getValue(),  zlevel = sliceLevel)
             
             radius=self.tool.getValue().diameter.value/2.0+self.radialOffset.value
             rounding = self.pathRounding.getValue()
 
             iterations=max_iterations
             input = PolygonGroup(patternLevels[sliceLevel],  precision = self.precision.getValue(),  zlevel = sliceLevel)
+
             #input = input.offset(radius=0)
             #pockets = [p for p in input.polygons if polygon_chirality(p)>0]
             #input.polygons = pockets
@@ -562,7 +563,7 @@ class SliceTask(MillTask):
                 if irounding>rounding:
                     irounding=rounding
                 offset = input.offset(radius = radius,  rounding = irounding)
-                
+                offset.trim(trimPoly)
                 if self.scalloping.getValue()>0 and iterations!=max_iterations:
                     interLevels=[]
                     inter=offset
@@ -660,8 +661,8 @@ class SliceTask(MillTask):
 
                     offset = roundclipper.Execute( int(-rounding*scaling))
                 offset = pyclipper.CleanPolygons(offset,  distance=scaling*self.precision.getValue())
-                # trim to outline 
 
+                # trim to outline
                 polytrim = pyclipper.Pyclipper()  #Pyclipper
                 polytrim.AddPath(bbpoly,  poly_type=pyclipper.PT_CLIP, closed=True)
                 polytrim.AddPaths(offset,  poly_type=pyclipper.PT_SUBJECT, closed=True)
@@ -678,7 +679,7 @@ class SliceTask(MillTask):
                 
                 radius = self.sideStep.value
                 iterations -= 1
-            self.patterns = input
+            #self.patterns = input
             #offsetOutput.reverse()
             
             lastpoint = None
@@ -692,7 +693,7 @@ class SliceTask(MillTask):
                 for i in range(0,  len(p)):
                     #check if point lies on boundary
                     bdist,  bpoint,  bindex = closest_point_on_polygon(p[i],  bb)
-                    if bdist<0.001: # point lies on boundary; skip this point    
+                    if bdist<0.001 and False: # (TURNED OFF, buggy) point lies on boundary; skip this point
                         # if this is the first boundary point of the path, append the start to the end
                         if path_closed:
                             remainder_path = opt_path
@@ -786,7 +787,8 @@ class SliceTask(MillTask):
 
                     for p in reversed(offset_path):
                         path_tree.insert(p)
-                        self.viewUpdater
+
+                    #self.viewUpdater()
                     #path_tree.optimise()
                     # offset_path = path_tree.toList()
                     # if self.direction.getValue() == "inside out": # reverse path order (paths are naturally inside outwards

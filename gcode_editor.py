@@ -90,6 +90,7 @@ class GcodeEditorWidget(QWidget):
         return [l for l in self.editor.text().splitlines()]
 
     def updateText(self, text,  label="", fileSuffix="ngc"):
+        print("updating text")
         if self.editingFlag: # don't update text if user is currently editing, to avoid propagation loops
             return
         # turn off signals to prevent event loops
@@ -104,26 +105,28 @@ class GcodeEditorWidget(QWidget):
         self.label.setText(label)
         skipped_lines = 0
         annotation=None
-        for linenumber, l in enumerate(text):
-            idx=linenumber-skipped_lines
-            if l is None:
-                #editor.append("\n")
-                if annotation is None:
-                    annotation="<"
-                else:
-                    annotation+="\n<"
-                skipped_lines+=1
-                self.editor.setMarginText(idx, "~", marginTextStyle)
-            else:
-                if annotation is not None:
-                    self.editor.annotate(idx-1, annotation, 0)
-                    annotation=None
-                if '\0' in l or '\1' in l:
-                    self.editor.append(l.replace('\0+', '').replace('\0-', '').replace('\m', '').replace('\0^', '').replace('\1', ''))
-                    self.editor.markerAdd(idx, QsciScintilla.Circle)
-                    self.editor.setMarginText(idx, l[1], marginTextStyle)
-                    self.editor.fillIndicatorRange(idx, l.find('\0'), idx, l.rfind("\1"), 0)
-                else:
-                    self.editor.append(l)
+        self.editor.setText(text)
+        # for linenumber, l in enumerate(text):
+        #     idx=linenumber-skipped_lines
+        #     if l is None:
+        #         #editor.append("\n")
+        #         if annotation is None:
+        #             annotation="<"
+        #         else:
+        #             annotation+="\n<"
+        #         skipped_lines+=1
+        #         self.editor.setMarginText(idx, "~", marginTextStyle)
+        #     else:
+        #         if annotation is not None:
+        #             self.editor.annotate(idx-1, annotation, 0)
+        #             annotation=None
+        #         if '\0' in l or '\1' in l:
+        #             self.editor.append(l.replace('\0+', '').replace('\0-', '').replace('\m', '').replace('\0^', '').replace('\1', ''))
+        #             self.editor.markerAdd(idx, QsciScintilla.Circle)
+        #             self.editor.setMarginText(idx, l[1], marginTextStyle)
+        #             self.editor.fillIndicatorRange(idx, l.find('\0'), idx, l.rfind("\1"), 0)
+        #         else:
+        #             self.editor.append(l)
 
+        print("finished updating")
         self.editor.blockSignals(False)

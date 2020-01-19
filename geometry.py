@@ -263,6 +263,20 @@ def horizontalLineSlice(p1, p2, slice_level, tolerance_offset = 0.0):
         
     return p_slice
 
+
+# computes the total length of a closed polygon
+def polygon_closed_length(poly):
+    length = sum([dist(poly[i].position, poly[i+1].position) for i in range(0, len(poly)-1)])
+    # add last line segment between start and finish
+    length+=dist(poly[0].position, poly[-1].position)
+    return length
+
+def polygon_closed_length2D(poly):
+    length = sum([dist2D(poly[i].position, poly[i+1].position) for i in range(0, len(poly)-1)])
+    # add last line segment between start and finish
+    length+=dist2D(poly[0].position, poly[-1].position)
+    return length
+
 # calculate if polygon is clockwise or counterclockwise. Returns area of polygon (positive if clockwise, negative for counterclockwise)
 
 def polygon_chirality(poly):

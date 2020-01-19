@@ -304,7 +304,8 @@ class PathTool(ItemWithParameters):
         lastPoint=None
         output = []
 
-
+        seg_len = polygon_closed_length2D(segment)
+        print("segment length:", seg_len, "order:", segment[0].order, segment[0].dist_from_model)
         #check if this is a closed segment:
         if dist2D(segment[0].position, segment[-1].position)<0.0001:
             # ramp "backwards" to reach target depth at start of segment
@@ -314,13 +315,15 @@ class PathTool(ItemWithParameters):
             currentDepth = min([p.position[2] for p in segment]) #get deepest point in segment
             while currentDepth < previousCutDepth:
                 p = segment[pos]
+                # length of closed polygon perimeter
+
                 #ignore rapids during ramp-down
                 if not p.rapid:
 
                     nd = max(p.position[2], currentDepthLimit)
                     is_in_contact = True
                     dist = dist2D(segment[pos].position, segment[(pos+1)%sl].position)
-                    currentDepth += dist * rampdown # spiral up
+                    currentDepth += dist * (rampdown/seg_len) # spiral up
 
                     if (nd<currentDepth):
                         nd = currentDepth
@@ -398,13 +401,21 @@ class PathTool(ItemWithParameters):
             finished=True
             newpath=[]
 
+            prev_segment = None
             for s in segments:
                 segment_output, finished = self.applyStepping(s, currentDepthLimit, finished)
 
                 if (rampdown!=0) and len(segment_output)>3:
-                    segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown)
+                    if prev_segment is None or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
+                        segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown)
+
                 for p in segment_output:
                     newpath.append(p)
+
+                if prev_segment is None:
+                    prev_segment = [p.position for p in s]
+                else:
+                    prev_segment += [p.position for p in s]
 
             if currentDepthLimit<=endDepth:
                 finished=True
