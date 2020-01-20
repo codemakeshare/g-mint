@@ -331,10 +331,10 @@ class SliceTask(MillTask):
     def __init__(self,  model=None,  tools=[],  **kwargs):
         MillTask.__init__(self, model,   tools,  **kwargs)
 
-        self.stockMinX=NumericalParameter(parent=self, name="Stock X",  value=self.model.minv[0], step=0.1)
-        self.stockMinY=NumericalParameter(parent=self, name="Y",  value=self.model.minv[1], step=0.1)
-        self.stockSizeX=NumericalParameter(parent=self, name="length X",  value=self.model.maxv[0]-self.model.minv[0], step=0.1)
-        self.stockSizeY=NumericalParameter(parent=self, name="Y",  value=self.model.maxv[1]-self.model.minv[1], step=0.1)
+        self.stockMinX=NumericalParameter(parent=self, name="Min. X",  value=self.model.minv[0], step=0.1)
+        self.stockMinY=NumericalParameter(parent=self, name="Min. Y",  value=self.model.minv[1], step=0.1)
+        self.stockSizeX=NumericalParameter(parent=self, name="Len. X",  value=self.model.maxv[0]-self.model.minv[0], step=0.1)
+        self.stockSizeY=NumericalParameter(parent=self, name="Len. Y",  value=self.model.maxv[1]-self.model.minv[1], step=0.1)
         
         self.operation=ChoiceParameter(parent=self,  name="Operation",  choices=["Slice",  "Slice & Drop",  "Outline",  "Medial Lines"],  value="Slice")
         self.direction=ChoiceParameter(parent=self,  name="Direction",  choices=["inside out",  "outside in"],  value="inside out")

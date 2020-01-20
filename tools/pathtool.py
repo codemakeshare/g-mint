@@ -459,7 +459,7 @@ class PathTool(ItemWithParameters):
         radius = self.trochoidalDiameter.getValue()/2.0
         distPerRev = self.trochoidalStepover.getValue()
         rampdown=self.rampdown.getValue()
-        steps_per_rev = 20
+        steps_per_rev = 50
         stock_poly = None
         if self.source is not None:
             stock_poly = self.source.getStockPolygon()
