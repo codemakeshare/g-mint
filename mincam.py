@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 from tools import *
 from tools.modeltool import *
 from tools.tool import *
+from tools.tool_lathe_insert import *
 
 from tools.milltask import *
 
@@ -36,8 +37,10 @@ class CAMGui(QtGui.QSplitter):
         self.modeltab=ModelDialog(self.objectviewer)
         self.tabs.addTab(self.modeltab,  "Model")
 
+        self.availableToolTypes = OrderedDict([("milling", Tool),
+                                               ("lathe", Tool_lathe_insert)])
 
-        self.tooltab=ListWidget(itemlist=[Tool()], title="Tools", itemclass=Tool,  name="Cutter")
+        self.tooltab=ListWidget(itemlist=[Tool(), Tool_lathe_insert(viewer = self.modeltab.viewer)], title="Tools", itemclass=self.availableToolTypes,  name=None, viewer = self.modeltab.viewer)
         self.tabs.addTab(self.tooltab,  "Tools")
 
         self.availablePathTools = OrderedDict([("Load GCode",  PathTool),

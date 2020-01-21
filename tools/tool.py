@@ -48,7 +48,9 @@ class Tool(ItemWithParameters):
             machineEfficiency = 0.75
             self.spindleLoad.updateValue((self.mrr.getValue() * self.specificCuttingForce.getValue())/60.0/machineEfficiency)
 
-        
+    def getType(self):
+        return "mill"
+
     def getDescription(self):
         return "%s cutter - %smm"%(self.shape.getValue(),  self.diameter.getValue())
         

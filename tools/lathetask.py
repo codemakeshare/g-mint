@@ -23,6 +23,7 @@ class LatheTask(ItemWithParameters):
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
         self.toolwidth=NumericalParameter(parent=self, name="tool width",  value=2.0, step=0.01)
+
         self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+10,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
@@ -35,6 +36,8 @@ class LatheTask(ItemWithParameters):
         self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=self.model.maxv[0], step=0.01)
         self.innerBound=NumericalParameter(parent=self, name="inner boundary",  value=0, step=0.01)
         self.outerBound=NumericalParameter(parent=self, name="outer boundary",  value=self.model.maxv[1], step=0.01)
+
+
 
         self.toolSide=ChoiceParameter(parent=self,  name="Tool side",  choices=["external",  "internal"], value = "external")
 
@@ -49,7 +52,8 @@ class LatheTask(ItemWithParameters):
 
         self.sliceLevel=NumericalParameter(parent=self, name="Slice level",  value=0,  step=0.1,  enforceRange=False,  enforceStep=False)
 
-        self.parameters=[ [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.toolwidth, self.toolSide, self.operation, self.direction,  self.sideStep, self.retract, self.traverseHeight,
+        self.parameters=[ [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool, self.toolwidth, self.toolSide, self.operation, self.direction,  self.sideStep,
+                          self.retract, self.traverseHeight,
                          self.radialOffset, self.precision,  self.sliceLevel]
         self.patterns=None
         
@@ -275,6 +279,15 @@ class LatheTask(ItemWithParameters):
             tool_poly = [[0, 0], [-self.toolwidth.getValue(), 0], [-self.toolwidth.getValue(), 6], [0, 6]]
         if self.toolSide.getValue()=="internal":
             tool_poly = [[0, 0], [-self.toolwidth.getValue(), 0], [-self.toolwidth.getValue(), -6], [0, -6]]
+
+        tool_poly = self.tool.getValue().toolPoly(self.toolSide.getValue())
+        if self.toolSide.getValue() == "external": # mirror tool on y axis for external (as we're using the inverted axis to model a lathe)
+            for p in tool_poly:
+                p[0] = -p[0]
+                p[1] = -p[1]
+
+        print(tool_poly)
+
 
         input = PolygonGroup(self.patterns, precision=self.precision.getValue(), zlevel=self.sliceLevel.getValue())
         in2 = input.offset(radius=-self.radialOffset.getValue(), rounding=0)

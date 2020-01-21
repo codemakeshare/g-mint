@@ -292,6 +292,12 @@ def polygon_chirality(poly):
 
     return area2/2.0
 
+
+def polygon_bounding_box(poly):
+    separated = list(zip(*poly)) # split into x, y, z components
+    bb = [[min(separated[0]), min(separated[1]), min(separated[2])], [max(separated[0]), max(separated[1]), max(separated[2])]]
+    return bb
+
 # determine if a point is inside a given polygon or not
 # Polygon is a list of (x,y) pairs.
 

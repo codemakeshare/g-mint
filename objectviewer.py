@@ -163,7 +163,7 @@ class ObjectViewer(QtGui.QWidget):
                 self.linecolors += [(float(i) / len(p), float(i) / len(p), float(i) / len(p), 1.0) for i in
                                 range(0, len(p))]
                 self.rawpath.append(p[-1])
-                self.colors.append((0.1, 0.1, 0.1, 0.2))
+                self.pointcolors.append((0.1, 0.1, 0.1, 0.2))
 
                 # colors=[color for p in rawpath]
         if len(self.rawpath) == 0: return

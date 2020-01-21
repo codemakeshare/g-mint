@@ -42,7 +42,16 @@ class PolygonGroup:
                 p1x,p1y = p2x,p2y
         return inside
     
-    
+    def getBoundingBox(self):
+        points = [p for poly in self.polygons for p in poly]
+        return polygon_bounding_box(points)
+
+    def translate(self, v):
+        for poly in self.polygons:
+            for p in poly:
+                p[0]+=v[0]
+                p[1] += v[1]
+                p[2] += v[2]
     
     def interpolateLines(self,  maxLength):
         ipolys=[]
