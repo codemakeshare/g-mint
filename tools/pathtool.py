@@ -334,7 +334,7 @@ class PathTool(ItemWithParameters):
                     newpoint = [x for x in p.position]
                     newpoint[axis] = nd * axis_scaling
                     ramp.append(GPoint(position=newpoint, rapid=p.rapid,
-                                         inside_model=p.inside_model, in_contact=is_in_contact))
+                                         inside_model=p.inside_model, in_contact=is_in_contact, axis_mapping = p.axis_mapping, axis_scaling=p.axis_scaling))
 
                 pos = (pos-1+sl) % sl
 
@@ -342,7 +342,7 @@ class PathTool(ItemWithParameters):
             newpoint = [x for x in p.position]
             newpoint[axis] = self.traverseHeight.getValue() * axis_scaling
             output.append(GPoint(position=newpoint, rapid=True,
-                                  inside_model=p.inside_model, in_contact=False))
+                                  inside_model=p.inside_model, in_contact=False, axis_mapping = p.axis_mapping, axis_scaling=p.axis_scaling))
             for p in reversed(ramp):
                 output.append(p)
             for p in segment[1:]:
@@ -351,7 +351,7 @@ class PathTool(ItemWithParameters):
             newpoint = [x for x in p.position]
             newpoint[axis] = self.traverseHeight.getValue() * axis_scaling
             output.append(GPoint(position=newpoint, rapid=True,
-                                  inside_model=p.inside_model, in_contact=False))
+                                  inside_model=p.inside_model, in_contact=False, axis_mapping = p.axis_mapping, axis_scaling=p.axis_scaling))
 
         else: # for open segments, apply forward ramping
             lastPoint = None
@@ -371,7 +371,7 @@ class PathTool(ItemWithParameters):
                 newpoint = [x for x in p.position]
                 newpoint[axis] = nd * axis_scaling
                 output.append(GPoint(position=newpoint, rapid=p.rapid,
-                                      inside_model=p.inside_model, in_contact=is_in_contact))
+                                      inside_model=p.inside_model, in_contact=is_in_contact, axis_mapping = p.axis_mapping, axis_scaling=p.axis_scaling))
                 lastPoint = output[-1]
 
         return output
@@ -390,7 +390,7 @@ class PathTool(ItemWithParameters):
             newpoint = [x for x in p.position]
             newpoint[axis] = axis_scaling * nd
             output.append(GPoint(position=newpoint, rapid=p.rapid,
-                                  inside_model=p.inside_model, in_contact=is_in_contact))
+                                  inside_model=p.inside_model, in_contact=is_in_contact, axis_mapping = p.axis_mapping, axis_scaling=p.axis_scaling))
         return output, finished
 
     def applyDepthStep(self):

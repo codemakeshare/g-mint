@@ -18,7 +18,7 @@ class LatheTask(ItemWithParameters):
 
         self.output_format = {
                                 "lathe (ZX)": {"mapping": ["Z", "X", "Y"], "scaling":[1.0, -2.0, 0.0]},
-                                "mill  (XZ)": {"mapping": ["X", "Z", "Y"], "scaling": [1.0, 1.0, 0.0]}
+                                "mill  (XZ)": {"mapping": ["X", "Z", "Y"], "scaling": [1.0, -1.0, 0.0]}
                               }
 
         # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
