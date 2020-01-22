@@ -143,6 +143,8 @@ class GCode:
         self.rapid_feedrate = 3000
         self.initialisation = "G90G21G17G54\n"
         self.laser_mode = False
+        self.steppingAxis = 2 # major cutting axis for step-down (incremental cutting). Normally z-axis on mills.
+
 
     def append_raw_coordinate(self, raw_point):
         self.path.append(GPoint(raw_point))

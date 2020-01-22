@@ -64,7 +64,7 @@ class Tool_lathe_insert(ItemWithParameters):
 
         cr = min([self.cornerRadius.getValue(), w/2.0-0.01, l/2.0-0.01])
         if cr>0:
-            offPoly = polygons.PolygonGroup(polys=[tool_poly])
+            offPoly = polygons.PolygonGroup(polys=[tool_poly], precision=0.001)
             roundPoly = offPoly.offset(radius=cr)
             roundPoly = roundPoly.offset(radius=-cr)
             tool_poly = roundPoly.polygons[0]

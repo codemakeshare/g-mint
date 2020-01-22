@@ -16,10 +16,17 @@ class LatheTask(ItemWithParameters):
         self.patterns=[]
         self.path=None
 
+        self.output_format = {
+                                "lathe (ZX)": {"mapping": ["Z", "X", "Y"], "scaling":[1.0, -2.0, 0.0]},
+                                "mill  (XZ)": {"mapping": ["X", "Z", "Y"], "scaling": [1.0, 1.0, 0.0]}
+                              }
+
         # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
-        self.axis_mapping=["Z", "X", "Y"]
+        #self.axis_mapping=["Z", "X", "Y"]
         # scaling factors for output. We use factor -2.0 for x (diameter instead of radius), inverted from negative Y coordinate in viz
-        self.axis_scaling = [1.0, -2.0, 0.0]
+        #self.axis_scaling = [1.0, -2.0, 0.0]
+
+        self.outputFormatChoice= ChoiceParameter(parent=self, name="Output format", choices=list(self.output_format.keys()), value=list(self.output_format.keys())[0])
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
         self.toolwidth=NumericalParameter(parent=self, name="tool width",  value=2.0, step=0.01)
@@ -46,13 +53,18 @@ class LatheTask(ItemWithParameters):
         self.model=model.object
         self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.01)
         self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1)
+
+        self.peckingDepth = NumericalParameter(parent=self, name="pecking depth",  value=0.0,  min=0.0,  step=0.1)
+        self.peckingRetract = NumericalParameter(parent=self, name="pecking retract",  value=1.0,  min=0.0,  step=0.1)
+
         self.radialOffset = NumericalParameter(parent=self, name='radial offset', value=0.0, min=-100, max=100, step=0.01)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
         self.sliceLevel=NumericalParameter(parent=self, name="Slice level",  value=0,  step=0.1,  enforceRange=False,  enforceStep=False)
 
-        self.parameters=[ [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool, self.toolwidth, self.toolSide, self.operation, self.direction,  self.sideStep,
+        self.parameters=[self.outputFormatChoice, [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool, self.toolwidth, self.toolSide, self.operation, self.direction,
+                         self.sideStep,
                           self.retract, self.traverseHeight,
                          self.radialOffset, self.precision,  self.sliceLevel]
         self.patterns=None
@@ -311,8 +323,17 @@ class LatheTask(ItemWithParameters):
         #self.path = GCode([p for segment in offset_path for p in segment])
         self.path = GCode(offset_path)
         self.path.default_feedrate = 50
+
+        format = self.outputFormatChoice.getValue()
+        # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
+        self.axis_mapping = self.output_format[format]["mapping"]
+        # scaling factors for output. We use factor -2.0 for x (diameter instead of radius), inverted from negative Y coordinate in viz
+        self.axis_scaling = self.output_format[format]["scaling"]
+
         self.path.applyAxisMapping(self.axis_mapping)
         self.path.applyAxisScaling(self.axis_scaling)
+        self.path.steppingAxis = 1
+
 
         return self.path
 

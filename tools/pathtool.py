@@ -19,6 +19,9 @@ class PathTool(ItemWithParameters):
         self.model=model
         self.source = source
         self.tool = tool
+
+        self.steppingAxis = 2
+
         feedrate=1000
         if self.tool is not None:
             feedrate =self.tool.feedrate.getValue()
@@ -300,7 +303,7 @@ class PathTool(ItemWithParameters):
             buffered_points = []
         return segments
 
-    def applyRampDown(self, segment, previousCutDepth, currentDepthLimit, rampdown):
+    def applyRampDown(self, segment, previousCutDepth, currentDepthLimit, rampdown, axis = 2, axis_scaling = 1):
         lastPoint=None
         output = []
 
@@ -312,7 +315,7 @@ class PathTool(ItemWithParameters):
             ramp = []
             sl =  len(segment)
             pos = sl - 1
-            currentDepth = min([p.position[2] for p in segment]) #get deepest point in segment
+            currentDepth = min([p.position[axis]/axis_scaling for p in segment]) #get deepest point in segment
             while currentDepth < previousCutDepth:
                 p = segment[pos]
                 # length of closed polygon perimeter
@@ -320,7 +323,7 @@ class PathTool(ItemWithParameters):
                 #ignore rapids during ramp-down
                 if not p.rapid:
 
-                    nd = max(p.position[2], currentDepthLimit)
+                    nd = max(p.position[axis]/axis_scaling, currentDepthLimit)
                     is_in_contact = True
                     dist = dist2D(segment[pos].position, segment[(pos+1)%sl].position)
                     currentDepth += dist * (rampdown/seg_len) # spiral up
@@ -328,20 +331,26 @@ class PathTool(ItemWithParameters):
                     if (nd<currentDepth):
                         nd = currentDepth
                         is_in_contact=False
-                    ramp.append(GPoint(position=(p.position[0], p.position[1], nd), rapid=p.rapid,
+                    newpoint = [x for x in p.position]
+                    newpoint[axis] = nd * axis_scaling
+                    ramp.append(GPoint(position=newpoint, rapid=p.rapid,
                                          inside_model=p.inside_model, in_contact=is_in_contact))
 
                 pos = (pos-1+sl) % sl
 
             p=ramp[-1]
-            output.append(GPoint(position=(p.position[0], p.position[1], self.traverseHeight.getValue()), rapid=True,
+            newpoint = [x for x in p.position]
+            newpoint[axis] = self.traverseHeight.getValue() * axis_scaling
+            output.append(GPoint(position=newpoint, rapid=True,
                                   inside_model=p.inside_model, in_contact=False))
             for p in reversed(ramp):
                 output.append(p)
             for p in segment[1:]:
                 output.append(p)
             p=segment[-1]
-            output.append(GPoint(position=(p.position[0], p.position[1], self.traverseHeight.getValue()), rapid=True,
+            newpoint = [x for x in p.position]
+            newpoint[axis] = self.traverseHeight.getValue() * axis_scaling
+            output.append(GPoint(position=newpoint, rapid=True,
                                   inside_model=p.inside_model, in_contact=False))
 
         else: # for open segments, apply forward ramping
@@ -353,30 +362,34 @@ class PathTool(ItemWithParameters):
                 # check if rampdown is active, and we're below previously cut levels, then limit plunge rate accordingly
                 if not p.rapid and rampdown != 0 and nd < previousCutDepth and lastPoint != None:
                     dist = dist2D(p.position, lastPoint.position)
-                    lastPointDepth = min(lastPoint.position[2], previousCutDepth)
+                    lastPointDepth = min(lastPoint.position[axis]/axis_scaling, previousCutDepth)
                     if (lastPointDepth - nd) > dist * rampdown:  # plunging to deeply - need to reduce depth for this point
                         nd = lastPointDepth - dist * rampdown;
                         is_in_contact = False
                         # buffer this point to finish closed path at currentDepthLimit
 
-                output.append(GPoint(position=(p.position[0], p.position[1], nd), rapid=p.rapid,
+                newpoint = [x for x in p.position]
+                newpoint[axis] = nd * axis_scaling
+                output.append(GPoint(position=newpoint, rapid=p.rapid,
                                       inside_model=p.inside_model, in_contact=is_in_contact))
                 lastPoint = output[-1]
 
         return output
 
-    def applyStepping(self, segment, currentDepthLimit, finished):
+    def applyStepping(self, segment, currentDepthLimit, finished, axis = 2, axis_scaling = 1):
         output = []
         for p in segment:
             # is_in_contact=p.in_contact
             is_in_contact = True
-            nd = p.position[2]
+            nd = p.position[axis] / axis_scaling
             if nd < currentDepthLimit:
                 nd = currentDepthLimit
                 is_in_contact = False;
                 finished = False
 
-            output.append(GPoint(position=(p.position[0], p.position[1], nd), rapid=p.rapid,
+            newpoint = [x for x in p.position]
+            newpoint[axis] = axis_scaling * nd
+            output.append(GPoint(position=newpoint, rapid=p.rapid,
                                   inside_model=p.inside_model, in_contact=is_in_contact))
         return output, finished
 
@@ -396,18 +409,23 @@ class PathTool(ItemWithParameters):
 
         # split into segments of closed loops, or separated by rapids
         segments = self.segmentPath(self.path.path)
+        axis = self.path.steppingAxis
+        axis_scaling = self.path.path[0].axis_scaling[self.path.steppingAxis]
+        print("axis:", axis, "scaling: ",axis_scaling)
 
         while not finished:
             finished=True
             newpath=[]
 
             prev_segment = None
+
             for s in segments:
-                segment_output, finished = self.applyStepping(s, currentDepthLimit, finished)
+                segment_output, finished = self.applyStepping(segment = s, currentDepthLimit = currentDepthLimit, finished=finished, axis = axis,
+                                                              axis_scaling = axis_scaling)
 
                 if (rampdown!=0) and len(segment_output)>3:
                     if prev_segment is None or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
-                        segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown)
+                        segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, self.path.steppingAxis, axis_scaling)
 
                 for p in segment_output:
                     newpath.append(p)
