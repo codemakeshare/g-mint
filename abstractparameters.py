@@ -139,13 +139,11 @@ class EditableParameter:
         self.active=active
 
     def updateValueOnly(self,  value):
-        #print "new value",  value
+        print("uvO new value",  value)
         self.value=value
-        if self.callback!=None:
-            self.callback(self)
 
     def updateValue(self,  value):
-        #print "new value",  value
+        print("uv new value",  value)
         self.value=value
         if self.callback!=None:
             self.callback(self)
@@ -161,6 +159,8 @@ class EditableParameter:
         self.updateValue(value)
 
     def setActive(self,  active):
+        if self.active == active:
+            return
         self.active=active
         if self.viewRefresh!=None:
             self.viewRefresh(self)
@@ -199,11 +199,16 @@ class FileParameter(EditableParameter):
 
 
 class NumericalParameter(EditableParameter):
-    def __init__(self,  value=0,  min=None,  max=None,  step=0,  enforceRange=False,  enforceStep=False,  **kwargs):
+    def __init__(self,  value=0,  min=None,  max=None,  step=0,  enforceRange=False,  enforceStep=False,  slider=False, **kwargs):
         EditableParameter.__init__(self,  **kwargs)
         self.value=value
         self.min=min
         self.max=max
+        self.slider = slider
+        if min is None or max is None: #slider needs a range
+            print("Error (%s): Slider needs a range!"%self.name)
+            self.slider = False
+
         self.step=step
         self.enforceRange=enforceRange
         self.enforceStep=enforceStep

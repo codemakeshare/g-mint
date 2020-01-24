@@ -234,8 +234,16 @@ class LabeledNumberField(QWidget):
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        self.step = step # used for slider scaling
+        if self.step==0:
+            self.step = 0.001 # set default if zero is given to avoid issues
         decimals = round(math.log(1.0 / step) / math.log(10))
-        self.number = QtWidgets.QDoubleSpinBox(parent=self, decimals=decimals)
+
+        self.number = None
+        if step==1.0:
+            self.number = QtWidgets.QSpinBox(parent=self)
+        else:
+            self.number = QtWidgets.QDoubleSpinBox(parent=self, decimals=decimals)
         if min != None:
             self.number.setMinimum(min)
         else:
@@ -248,6 +256,7 @@ class LabeledNumberField(QWidget):
         self.number.setValue(value)
         self.layout.addWidget(self.number)
         self.number.valueChanged.connect(self.spinboxChanged)
+        self.number.setKeyboardTracking(False)
         if slider:
             self.sliderLayout = QtWidgets.QVBoxLayout()
             self.sliderLayout.setSpacing(0)
@@ -255,10 +264,10 @@ class LabeledNumberField(QWidget):
             self.sliderWidget = QtWidgets.QWidget()
             self.slider = QtWidgets.QSlider(orientation=QtCore.Qt.Horizontal)
             if min != None:
-                self.slider.setMinimum(min)
+                self.slider.setMinimum(min/self.step)
             if max != None:
-                self.slider.setMaximum(max)
-            self.slider.setValue(value)
+                self.slider.setMaximum(max/self.step)
+            self.slider.setValue(value/self.step)
             self.slider.valueChanged.connect(self.sliderChanged)
             labelednumber_widget = QtWidgets.QWidget()
             labelednumber_widget.setLayout(self.layout)
@@ -272,11 +281,13 @@ class LabeledNumberField(QWidget):
             self.setLayout(self.layout)
 
     def sliderChanged(self):
-        self.updateValue(self.slider.value())
+        self.number.setValue(self.slider.value()*self.step)
 
     def spinboxChanged(self):
         if self.slider is not None:
-            self.slider.setValue(self.number.value())
+            self.slider.blockSignals(True)
+            self.slider.setValue(self.number.value()/self.step)
+            self.slider.blockSignals(False)
 
     def update(self, parameter):
         if parameter != None:
@@ -285,7 +296,7 @@ class LabeledNumberField(QWidget):
     def updateValue(self,  value):
         self.number.setValue(value)
         if self.slider is not None:
-            self.slider.setValue(value)
+            self.slider.setValue(value/self.step)
 
 
 def parameterWidgetFactory(object, parent = None):
@@ -306,10 +317,10 @@ def parameterWidgetFactory(object, parent = None):
             w.text.textChanged.connect(object.updateValue)
 
     if object.__class__.__name__ == "NumericalParameter":
-        w = LabeledNumberField(parent=parent, label=object.name, min=object.min, max=object.max, value=object.getValue(), step=object.step)
+        w = LabeledNumberField(parent=parent, label=object.name, min=object.min, max=object.max, value=object.getValue(), step=object.step, slider = object.slider)
 
         if object.editable:
-            w.number.valueChanged.connect(object.updateValueOnly)
+            w.number.valueChanged.connect(object.updateValueQT)
 
     if object.__class__.__name__ == "ProgressParameter":
         w = LabeledProgressField(parent=parent, label=object.name, min=object.min, max=object.max, value=object.getValue())
@@ -335,17 +346,17 @@ class ToolPropertyWidget(QWidget):
     def __init__(self, parent,  tool):
         QWidget.__init__( self, parent=parent)
 
-        self.scroll = QtGui.QScrollArea(self)
+        self.scroll = QtWidgets.QScrollArea(self)
 
         self.scroll.setWidgetResizable(True)
-        self.outer_layout = QtGui.QVBoxLayout(self)
+        self.outer_layout = QtWidgets.QVBoxLayout(self)
         self.outer_layout.addWidget(self.scroll)
 
         self.scroll.setVerticalScrollBarPolicy(Qt.Qt.ScrollBarAsNeeded)
         self.scroll.setHorizontalScrollBarPolicy(Qt.Qt.ScrollBarAsNeeded)
 
-        self.scrollcontent=QtGui.QWidget(self.scroll)
-        self.layout = QtGui.QVBoxLayout(self.scrollcontent)
+        self.scrollcontent=QtWidgets.QWidget(self.scroll)
+        self.layout = QtWidgets.QVBoxLayout(self.scrollcontent)
         self.scrollcontent.setLayout(self.layout)
         self.scroll.setWidget(self.scrollcontent)
 
