@@ -2,7 +2,7 @@ import math
 from abstractparameters import *
 
 class Tool(ItemWithParameters):
-    def __init__(self,  name=None,  diameter=6, shape='slot',   **kwargs):
+    def __init__(self,  name=None,  diameter=6, shape='slot',  viewer=None, **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
         if name==None:
             self.name=TextParameter(parent=self, name="Description", value="%s cutter - %smm"%(shape,  diameter))

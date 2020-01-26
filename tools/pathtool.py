@@ -9,7 +9,8 @@ import traceback
 class PathTool(ItemWithParameters):
     def __init__(self,  path=None,  model=None, viewUpdater=None, tool=None, source=None,  **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
-        if path is None:
+
+        if path is None and self.name.getValue()=="-":
             filename= QtGui.QFileDialog.getOpenFileName(None, 'Open file', '',  "GCode files (*.ngc)")
             self.path = read_gcode(filename[0])
         else:
@@ -36,7 +37,7 @@ class PathTool(ItemWithParameters):
         else:
             #print self.path.path
             try:
-                if self.path.getPathLength()>0:
+                if self.path is not None and self.path.getPathLength()>0:
                     startdepth=max([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
                     enddepth=min([p.position[2] for p in self.path.get_draw_path() if p.position is not None])
             except Exception as e:
@@ -257,6 +258,8 @@ class PathTool(ItemWithParameters):
         self.updateEstimate()
         
     def updateEstimate(self,  val=None):
+        if self.path is None:
+            return
         self.path.default_feedrate = self.feedrate.getValue()
         estimate = None
 

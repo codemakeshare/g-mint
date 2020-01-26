@@ -32,16 +32,16 @@ class TaskDialog(QtGui.QWidget):
         start_one_btn = QtGui.QPushButton("start selected")
         start_all_btn = QtGui.QPushButton("start all")
 
-        save_btn = QtGui.QPushButton("save")
-        save_btn.clicked.connect(self.saveTasks)
-        load_btn = QtGui.QPushButton("load")
-        load_btn.clicked.connect(self.loadTasks)
+        #save_btn = QtGui.QPushButton("save")
+        #save_btn.clicked.connect(self.saveTasks)
+        #load_btn = QtGui.QPushButton("load")
+        #load_btn.clicked.connect(self.loadTasks)
 
         self.layout.addWidget(create_pattern_btn, 1, 1)
         self.layout.addWidget(start_one_btn, 2, 0)
         self.layout.addWidget(start_all_btn, 2, 1)
-        self.layout.addWidget(save_btn, 3, 0)
-        self.layout.addWidget(load_btn, 3, 1)
+        #self.layout.addWidget(save_btn, 3, 0)
+        #self.layout.addWidget(load_btn, 3, 1)
 
         create_pattern_btn.clicked.connect(self.generatePattern)
         start_one_btn.clicked.connect(self.startSelectedTask)
@@ -114,7 +114,6 @@ class TaskDialog(QtGui.QWidget):
         for name, c in self.availableTasks.items():
             print(name, str(c.__name__), c)
             classDict[str(c.__name__)] =  c
-        print (classDict)
 
         for i in importedData:
             item = buildItemFromDict(i, classDict) (name = i["name"], tools = self.tools, model = self.modelmanager)

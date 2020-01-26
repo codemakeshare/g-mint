@@ -356,3 +356,6 @@ class ActionParameter(EditableParameter):
     def __init__(self,   **kwargs):
         EditableParameter.__init__(self, **kwargs)
 
+
+    def updateValue(self,  value):
+        pass

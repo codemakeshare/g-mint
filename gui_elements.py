@@ -14,6 +14,8 @@ import math
 import sys
 import traceback
 from importlib import *
+import json
+from abstractparameters import  *
 
 class HorizontalBar(QWidget):
     def __init__(self,  parent=None):
@@ -551,6 +553,15 @@ class ListWidget(QWidget):
 
             self.layout.addWidget(buttonwidget, 2, 0)   # button goes in upper-left
 
+            self.save_btn = QtGui.QPushButton("Sv")
+            self.save_btn.clicked.connect(self.saveTasks)
+            self.save_btn.setFixedWidth(30)
+            self.load_btn = QtGui.QPushButton("Ld")
+            self.load_btn.setFixedWidth(30)
+            self.load_btn.clicked.connect(self.loadTasks)
+            buttonLayout.addWidget(self.save_btn)
+            buttonLayout.addWidget(self.load_btn)
+
 
         if len(itemlist)>0:
             self.selectedTool=itemlist[0]
@@ -647,3 +658,39 @@ class ListWidget(QWidget):
         self.listmodel.removeRows(itemindex[0].row(),  1,  itemindex[0])
 
 
+    def saveTasks(self):
+        filename, pattern = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', '', "*.json")
+        if len(filename)==0:
+            return
+
+        print("saving File:", filename)
+
+        items = self.getItems()
+        exportedItems = [i.toDict() for i in items]
+        print(exportedItems)
+        jdata = json.dumps(exportedItems)
+        with open(filename, "w") as file:
+            file.write(jdata)
+
+    def loadTasks(self):
+        filename, pattern = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', "*.json")
+        if len(filename)==0:
+            return
+
+        data = None
+        with open(filename) as file:
+            data = file.read()
+        importedData = json.loads(data)
+
+        classDict = {}
+        for name, c in self.itemclass.items():
+            print(name, str(c.__name__), c)
+            classDict[str(c.__name__)] = c
+        print(classDict)
+
+        for i in importedData:
+            args = {i:self.creationArgs[i] for i in self.creationArgs if i!="name"}
+            item = buildItemFromDict(i, classDict) (name = i["name"], **args)
+            item.restoreParametersFromDict(i["parameters"])
+            print(item)
+            self.listmodel.addItem(item)

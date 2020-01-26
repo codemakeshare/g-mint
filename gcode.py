@@ -162,6 +162,8 @@ class GCode:
         self.path.append(gpoint)
 
     def combinePath(self, gcode):
+        if gcode is None or gcode.path is None:
+            return None
         for p in gcode.path:
             self.append(p)
 
