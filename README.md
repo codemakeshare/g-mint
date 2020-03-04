@@ -74,6 +74,7 @@ python3 mincam.py
 python3 mint.py
 
 python3 lint.py [-f]
+
   -f fullscreen
 
 
