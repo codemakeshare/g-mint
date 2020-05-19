@@ -489,7 +489,7 @@ class ItemListModel(QtCore.QAbstractListModel):
 
         self.beginInsertRows(parent, beginRow, endRow)
 
-        for i in xrange(beginRow, endRow+1): self.listdata.insert(i,None)
+        for i in range(beginRow, endRow+1): self.listdata.insert(i,None)
 
         self.endInsertRows()
         return True

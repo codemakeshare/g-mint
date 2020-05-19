@@ -264,6 +264,7 @@ class PathTool(ItemWithParameters):
         estimate = None
 
         estimate = self.getCompletePath().estimate()
+        print(estimate)
         self.estimatedTime.updateValue("%s (%s)"%(str(datetime.timedelta(seconds=int(estimate[1]*60))),
                                                            str(datetime.timedelta(seconds=int(estimate[5]*60)))))
         self.estimatedDistance.updateValue("{:.1f} (c {:.0f})".format(estimate[0],  estimate[3],  estimate[4]))

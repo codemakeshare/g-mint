@@ -147,6 +147,8 @@ class EditableParameter:
         self.value=value
         if self.callback!=None:
             self.callback(self)
+        if self.viewRefresh!=None:
+            self.viewRefresh(self)
 
     def commitValue(self):
         if self.callback != None:
