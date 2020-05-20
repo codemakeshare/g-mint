@@ -68,7 +68,7 @@ class CAMGui(QtGui.QSplitter):
         self.updateGeometry()
         self.resize(1600,  900)
         ## Display the widget as a new window
-        self.setSizes([600,4000])
+        self.setSizes([700,4000])
         self.setStretchFactor(1,1)
 
 
