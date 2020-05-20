@@ -1,9 +1,6 @@
-from abstractparameters import *
-from geometry import *
-from solids import  *
+
 import pyclipper
 from gcode import *
-import numpy as np
 from scipy.spatial import Voronoi
 
 class PolygonGroup:

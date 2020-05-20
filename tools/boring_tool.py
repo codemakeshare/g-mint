@@ -1,4 +1,4 @@
-from abstractparameters import *
+from guifw.abstractparameters import *
 
 from gcode import *
 

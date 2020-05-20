@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from collections import OrderedDict
 import threading_tool
 from tools.pathtool import *
-from gui_elements import *
+from guifw.gui_elements import *
 from objectviewer import *
 
 class PathDialog(QtGui.QWidget):

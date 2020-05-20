@@ -1,4 +1,4 @@
-from abstractparameters import *
+from guifw.abstractparameters import *
 from geometry import *
 from solids import  *
 import multiprocessing as mp

@@ -1,4 +1,4 @@
-from abstractparameters import *
+from guifw.abstractparameters import *
 
 class ModelTool(ItemWithParameters):
     def __init__(self,  object=None,  viewUpdater=None,  **kwargs):

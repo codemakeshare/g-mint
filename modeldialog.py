@@ -6,7 +6,7 @@ from tools.modeltool import *
 from tools.tool import *
 from tools.pathtool import *
 from tools.milltask import *
-from gui_elements import *
+from guifw.gui_elements import *
 import sys, os, os.path
 from solids import *
 from objectviewer import *

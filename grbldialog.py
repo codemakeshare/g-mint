@@ -6,7 +6,7 @@ from builtins import bytes
 from objectviewer import *
 from tools.pathtool import *
 import serial
-from gui_elements import *
+from guifw.gui_elements import *
 import os, fnmatch
 
 

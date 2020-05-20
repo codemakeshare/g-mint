@@ -1,5 +1,5 @@
 import math
-from abstractparameters import *
+from guifw.abstractparameters import *
 import polygons
 
 

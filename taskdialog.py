@@ -9,7 +9,7 @@ from tools.timing_pulley import *
 from tools.lathetask import *
 from tools.lathethreadingtool import *
 import traceback
-from gui_elements import *
+from guifw.gui_elements import *
 
 import json
 

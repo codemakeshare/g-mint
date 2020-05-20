@@ -1,5 +1,5 @@
 import math
-from abstractparameters import *
+from guifw.abstractparameters import *
 
 class Tool(ItemWithParameters):
     def __init__(self,  name=None,  diameter=6, shape='slot',  viewer=None, **kwargs):
