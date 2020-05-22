@@ -23,7 +23,7 @@ class PathDialog(QtGui.QWidget):
         if tools is not None:
             tool = tools[0]
         self.pathtab = ListWidget(itemlist=[], title="Paths", itemclass=self.availablePathTools,
-                                  on_select_cb=self.display_path, viewUpdater=view_updater, tool=tool)
+                                  on_select_cb=self.display_path, viewUpdater=view_updater, tool=tool, name="-")
 
         self.layout.addWidget(self.pathtab, 0, 0, 1, 2)
         combine_paths_btn = QtGui.QPushButton("combine paths")
