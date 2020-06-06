@@ -49,7 +49,9 @@ class PathTool(ItemWithParameters):
         self.rampdown=NumericalParameter(parent=self,  name='rampdown per loop (0=off)',  value=0.1,  min=0.0,  max=10,  step=0.01)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=startdepth+5.0,  enforceRange=False,  step=1.0)
         self.laser_mode = NumericalParameter(parent=self,  name='laser mode',  value=0.0,  min=0.0,  max=1.0,  enforceRange=True,  step=1.0)
-        self.depthStepping=ActionParameter(parent=self,  name='Apply depth stepping',  callback=self.applyDepthStep)
+        self.depthStepping=ActionParameter(parent=self,  name='Depth ramping',  callback=self.applyDepthStep)
+        self.depthSteppingRelRamp = CheckboxParameter(parent=self, name='relative ramping')
+
         self.removeNonCutting=ActionParameter(parent=self,  name='Remove non-cutting points',  callback=self.removeNoncuttingPoints)
         self.invertPath=ActionParameter(parent=self,  name='invert path',  callback=self.applyInvertPath)
         self.clean=ActionParameter(parent=self,  name='clean paths',  callback=self.cleanColinear)
@@ -76,7 +78,7 @@ class PathTool(ItemWithParameters):
                                     self.rampdown,  
                                     self.traverseHeight,   
                                     self.laser_mode, 
-                                    [self.depthStepping,   
+                                    [self.depthStepping, self.depthSteppingRelRamp,
                                     self.removeNonCutting,
                                     self.invertPath],
                                     [self.clean, self.smooth, self.precision],
@@ -97,7 +99,6 @@ class PathTool(ItemWithParameters):
         self.path = path
         self.outpaths=[self.path]
         self.updateView()
-
 
     def applyInvertPath(self):
         if len(self.outpaths)==0:
@@ -307,11 +308,15 @@ class PathTool(ItemWithParameters):
             buffered_points = []
         return segments
 
-    def applyRampDown(self, segment, previousCutDepth, currentDepthLimit, rampdown, axis = 2, axis_scaling = 1):
+    def applyRampDown(self, segment, previousCutDepth, currentDepthLimit, rampdown, relative_ramping = False, axis = 2, axis_scaling = 1):
         lastPoint=None
         output = []
 
-        seg_len = polygon_closed_length2D(segment)
+        if relative_ramping:
+            seg_len = polygon_closed_length2D(segment)
+        else:
+            seg_len = 1.0 # use constant for absolute ramping
+
         print("segment length:", seg_len, "order:", segment[0].order, segment[0].dist_from_model)
         #check if this is a closed segment:
         if dist2D(segment[0].position, segment[-1].position)<0.0001:
@@ -404,7 +409,8 @@ class PathTool(ItemWithParameters):
         depthStep=self.maxDepthStep.getValue()
         currentDepthLimit=self.startDepth.getValue()-depthStep
         endDepth=self.stopDepth.getValue()
-        
+        relRamping = self.depthSteppingRelRamp.getValue()
+
         if currentDepthLimit<endDepth:
             currentDepthLimit=endDepth
         previousCutDepth=self.startDepth.getValue()
@@ -429,7 +435,7 @@ class PathTool(ItemWithParameters):
 
                 if (rampdown!=0) and len(segment_output)>3:
                     if prev_segment is None or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
-                        segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, self.path.steppingAxis, axis_scaling)
+                        segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, relRamping, self.path.steppingAxis, axis_scaling)
 
                 for p in segment_output:
                     newpath.append(p)
