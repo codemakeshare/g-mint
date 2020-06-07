@@ -51,6 +51,10 @@ class PathTool(ItemWithParameters):
         self.laser_mode = NumericalParameter(parent=self,  name='laser mode',  value=0.0,  min=0.0,  max=1.0,  enforceRange=True,  step=1.0)
         self.depthStepping=ActionParameter(parent=self,  name='Depth ramping',  callback=self.applyDepthStep)
         self.depthSteppingRelRamp = CheckboxParameter(parent=self, name='relative ramping')
+        self.tabs = NumericalParameter(parent=self, name='Tabs per contour', value=0, min=0, max=20, step=1)
+        self.tabwidth = NumericalParameter(parent=self, name='Tab width', value=1, min=0, max=20, step=0.1)
+        self.tabheight = NumericalParameter(parent=self, name='Tab height', value=0.5, min=0, max=20, step=0.1)
+
 
         self.removeNonCutting=ActionParameter(parent=self,  name='Remove non-cutting points',  callback=self.removeNoncuttingPoints)
         self.invertPath=ActionParameter(parent=self,  name='invert path',  callback=self.applyInvertPath)
@@ -78,8 +82,9 @@ class PathTool(ItemWithParameters):
                                     self.rampdown,  
                                     self.traverseHeight,   
                                     self.laser_mode, 
-                                    [self.depthStepping, self.depthSteppingRelRamp,
-                                    self.removeNonCutting,
+                                    [self.depthStepping, self.depthSteppingRelRamp],
+                                    [self.tabs, self.tabwidth, self.tabheight],
+                                    [self.removeNonCutting,
                                     self.invertPath],
                                     [self.clean, self.smooth, self.precision],
                                     
@@ -308,6 +313,28 @@ class PathTool(ItemWithParameters):
             buffered_points = []
         return segments
 
+    def applyTabbing(self, segment, tabs, tabwidth, tabheight):
+        seg_len = polygon_closed_length2D(segment)
+        if seg_len<=tabs*tabwidth:
+            return
+        for i in range(0, tabs):
+            length = i * seg_len / tabs
+            print(length, seg_len)
+            i1, p = polygon_point_at_position(segment, length)
+            height = p[2]
+            segment.insert(i1, GPoint(position = [x for x in p]))
+            p[2] = height + tabheight
+            segment.insert(i1+1, GPoint(position=[x for x in p]))
+            i2, p = polygon_point_at_position(segment, length+tabwidth)
+            # elevate all intermediate points
+            for i in range(i1+1, i2):
+                segment[i].position[2]=height+tabheight
+            p[2] = height + tabheight
+            segment.insert(i2, GPoint(position=[x for x in p]))
+            p[2] = height
+            segment.insert(i2+1, GPoint(position=[x for x in p]))
+
+
     def applyRampDown(self, segment, previousCutDepth, currentDepthLimit, rampdown, relative_ramping = False, axis = 2, axis_scaling = 1):
         lastPoint=None
         output = []
@@ -436,6 +463,9 @@ class PathTool(ItemWithParameters):
                 if (rampdown!=0) and len(segment_output)>3:
                     if prev_segment is None or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
                         segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, relRamping, self.path.steppingAxis, axis_scaling)
+
+                if self.tabs.getValue()>0:
+                    self.applyTabbing(segment_output, self.tabs.getValue(), self.tabwidth.getValue(), self.tabheight.getValue())
 
                 for p in segment_output:
                     newpath.append(p)

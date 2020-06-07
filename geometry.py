@@ -277,8 +277,27 @@ def polygon_closed_length2D(poly):
     length+=dist2D(poly[0].position, poly[-1].position)
     return length
 
-# calculate if polygon is clockwise or counterclockwise. Returns area of polygon (positive if clockwise, negative for counterclockwise)
+def polygon_point_at_position(poly, length):
+    n = len(poly)
+    running_dist = 0
+    for i in range(n + 1):
+        dist_before = running_dist
+        p1, p2 =  poly[(i - 1) % n].position, poly[i % n].position
+        line_length = dist2D(p1, p2)
+        running_dist += line_length
+        if running_dist>length: # crossed the position, so we insert a point on the current line segment
+            frac = (length - dist_before) / line_length # relative position along current line segment
+            print("frac", frac, "ll", line_length)
 
+            newp = [(1.0 - frac) * (p1[0]) + frac * p2[0],
+                    (1.0 - frac) * (p1[1]) + frac * p2[1],
+                    (1.0 - frac) * (p1[2]) + frac * p2[2]]
+
+            return i, newp
+    return None
+
+
+# calculate if polygon is clockwise or counterclockwise. Returns area of polygon (positive if clockwise, negative for counterclockwise)
 def polygon_chirality(poly):
 
     n = len(poly)
