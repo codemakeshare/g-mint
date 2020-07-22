@@ -202,7 +202,7 @@ class ObjectViewer(QtGui.QWidget):
             self.pathPlot.setData(pos=array(drawpath), color=array(self.linecolors[start_index:end_index]))
             self.pathPlotHighlight.setData(pos=array(drawpath), color=array(self.pointcolors[start_index:end_index]))
 
-            if self.gpoints is not None:
+            if self.gpoints is not None and len(self.gpoints.path)>end_index-1:
                 lp = self.gpoints.path[end_index - 1]
                 feed = self.gpoints.default_feedrate
                 if lp.feedrate is not None:
