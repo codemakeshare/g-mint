@@ -835,9 +835,12 @@ class GrblDialog(QtGui.QWidget):
         self.serialSelect.updateChoices([s.device for s in self.serialPorts])
 
     def reopenSerial(self, index):
-        device=self.serialPorts[index]
-        print (device)
-        self.machine_interface.reopenSerial(device)
+        if index>=0 and index<len(self.serialPorts)-1:
+            device=self.serialPorts[index]
+            print (device)
+            self.machine_interface.reopenSerial(device)
+        else:
+            print("No valid serial port found. ", self.serialPorts, index)
 
 if __name__ == '__main__':
     import sys
