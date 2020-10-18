@@ -100,8 +100,7 @@ def auto_detect_serial_unix(preferred_list=['*']):
     '''try to auto-detect serial ports on unix'''
     import glob
     # glist = glob.glob('/dev/ttyS*') + glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob('/dev/serial/by-id/*')
-    glist = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob(
-        '/dev/serial/by-id/*')
+    glist = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob('/dev/serial/by-id/*') + glob.glob('/dev/tty.usb*')
     ret = []
     others = []
     # try preferred ones first
@@ -539,7 +538,7 @@ class CursorWidget(QtGui.QWidget):
 
         layout.addWidget(cursorWidget)
 
-        self.jogfeed = LabeledNumberField(label="Jogspeed", min=0, max=1000, value=80, step=10, slider=True)
+        self.jogfeed = LabeledNumberField(label="Jogspeed", min=0, max=1000, value=400, step=50, slider=True)
         self.jogfeed.number.valueChanged.connect(self.rapidButtonClicked)
         self.rapidfeed = LabeledNumberField(label="Rapid speed", min=0, max=2000, value=2000, step=50)#, slider=False)
         layout.addWidget(self.rapidfeed)
@@ -686,7 +685,7 @@ class GCodeWidget(QtGui.QWidget):
         if self.current_line_number < len(self.current_gcode):
             self.machine_interface.sendGCommand(self.current_gcode[self.current_line_number])
             if self.editor is not None:
-                self.editor.highlightLine(self.current_line_number)
+                self.editor.highlightLine(self.current_line_number, refresh = True)
             self.current_line_number += 1
         else:
             self.send_timer.stop()
@@ -757,7 +756,7 @@ class GCodeWidget(QtGui.QWidget):
 
 
 class GrblDialog(QtGui.QWidget):
-    def __init__(self, path_dialog=None, editor=None, layout="vertical", machine="mill", device = "/dev/ttyACM0"):
+    def __init__(self, path_dialog=None, editor=None, layout="vertical", machine="mill", device = None):
         QtGui.QWidget.__init__(self)
         self.path_dialog = path_dialog
         self.machine_interface = GrblInterface(portname=device)
@@ -768,6 +767,7 @@ class GrblDialog(QtGui.QWidget):
                                             onOpenCallback=self.rescanForSerials)
 
         self.rescanForSerials()
+        self.reopenSerial(0)
         self.serialSelect.currentIndexChanged.connect(self.reopenSerial)
         self.serialSelect.highlighted.connect(self.rescanForSerials)
         self.serialSelect.setFixedWidth(100)
@@ -831,12 +831,16 @@ class GrblDialog(QtGui.QWidget):
 
     def rescanForSerials(self):
         self.serialPorts = auto_detect_serial()
+        print("found serial ports: ", [s.device for s in self.serialPorts])
         self.serialSelect.updateChoices([s.device for s in self.serialPorts])
 
     def reopenSerial(self, index):
-        device=self.serialPorts[index]
-        print (device)
-        self.machine_interface.reopenSerial(device)
+        if index>=0 and index<len(self.serialPorts)-1:
+            device=self.serialPorts[index]
+            print (device)
+            self.machine_interface.reopenSerial(device)
+        else:
+            print("No valid serial port found. ", self.serialPorts, index)
 
 if __name__ == '__main__':
     import sys

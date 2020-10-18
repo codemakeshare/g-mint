@@ -202,13 +202,14 @@ class ObjectViewer(QtGui.QWidget):
             self.pathPlot.setData(pos=array(drawpath), color=array(self.linecolors[start_index:end_index]))
             self.pathPlotHighlight.setData(pos=array(drawpath), color=array(self.pointcolors[start_index:end_index]))
 
-            if self.gpoints is not None:
+            if self.gpoints is not None and len(self.gpoints.path)>end_index-1:
                 lp = self.gpoints.path[end_index - 1]
                 feed = self.gpoints.default_feedrate
                 if lp.feedrate is not None:
                     feed = lp.feedrate
-                self.stats.setText(
-                    "x=% 4.2f y=% 4.2f z=% 4.2f f=%i, line=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed), lp.line_number))
+                    if lp.feedrate is not None and lp.position is not None:
+
+                        self.stats.setText("x=% 4.2f y=% 4.2f z=% 4.2f f=%i, line=%i" % (lp.position[0], lp.position[1], lp.position[2], int(feed), lp.line_number))
 
     @staticmethod
     def rounded_cylinder(rows, cols, radius=[1.0, 1.0, 0.0], length=1.0, offset=False):
