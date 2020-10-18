@@ -8,6 +8,7 @@ from tools.boring_tool import *
 from tools.timing_pulley import *
 from tools.lathetask import *
 from tools.lathethreadingtool import *
+from tools.svgengrave import *
 import traceback
 from guifw.gui_elements import *
 
@@ -21,9 +22,14 @@ class TaskDialog(QtGui.QWidget):
         self.tools = tools
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
-        self.availableTasks = OrderedDict([("Slice", SliceTask), ("Pattern", PatternTask), ("lathe tool", LatheTask),("lathe threading", LatheThreadingTool), ("Boring", BoringTool), ("Threading",
-                                                                                                                                                                             ThreadingTool),("timing pulley",
-                                                                                                                                                                                     TimingPulleyTool)])
+        self.availableTasks = OrderedDict([("Slice", SliceTask),
+                                           ("Pattern", PatternTask),
+                                           ("lathe tool", LatheTask),
+                                           ("lathe threading", LatheThreadingTool),
+                                           ("Boring", BoringTool),
+                                           ("Threading", ThreadingTool),
+                                           ("timing pulley",TimingPulleyTool),
+                                           ("SVG engrage", SVGEngraveTask)])
 
         self.tasktab = ListWidget(itemlist=[], title="Milling tasks", itemclass=self.availableTasks, name="Task",
                                   tools=tools, model=modelmanager, on_select_cb=self.display_pattern, viewUpdater=self.modelmanager.viewer.showPath)

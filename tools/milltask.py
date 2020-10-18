@@ -42,8 +42,12 @@ class MillTask(ItemWithParameters):
     def __init__(self,  model=None,  tools=[], viewUpdater=None, **kwargs):
         ItemWithParameters.__init__(self,  **kwargs)
         self.model = None
+        self.model_top = 0
+        self.model_bottom=0
         if model is not None:
             self.model=model.object
+            self.model_top = self.model.maxv[2]
+            self.model_bottom = self.model.minv[2]
         self.patterns=[]
         self.path=None
         selectedTool = None
@@ -51,9 +55,9 @@ class MillTask(ItemWithParameters):
             selectedTool = tools[0]
         self.tool = ChoiceParameter(parent=self,  name="Tool",  choices=tools,  value=selectedTool)
         self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
-        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+10,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
+        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model_top+10,  min=self.model_bottom-100,  max=self.model_top+100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
-        self.waterlevel=NumericalParameter(parent=self,  name='waterlevel',  value=self.model.minv[2],  min=self.model.minv[2],  max=self.model.maxv[2],  step=1.0)
+        self.waterlevel=NumericalParameter(parent=self,  name='waterlevel',  value=self.model_bottom,  min=self.model_bottom,  max=self.model_top,  step=1.0)
         self.deviation = NumericalParameter(parent=self, name='max. deviation', value=0.1, min=0.0, max=10, step=0.01)
         self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)
         self.viewUpdater=viewUpdater
@@ -330,11 +334,16 @@ class PatternTask(MillTask):
 class SliceTask(MillTask):
     def __init__(self,  model=None,  tools=[],  **kwargs):
         MillTask.__init__(self, model,   tools,  **kwargs)
+        self.model_minv = [0,0,0]
+        self.model_maxv = [0,0,0]
+        if self.model is not None:
+            self.model_minv = self.model.minv
+            self.model_maxv = self.model.maxv
 
-        self.stockMinX=NumericalParameter(parent=self, name="Min. X",  value=self.model.minv[0], step=0.1)
-        self.stockMinY=NumericalParameter(parent=self, name="Min. Y",  value=self.model.minv[1], step=0.1)
-        self.stockSizeX=NumericalParameter(parent=self, name="Len. X",  value=self.model.maxv[0]-self.model.minv[0], step=0.1)
-        self.stockSizeY=NumericalParameter(parent=self, name="Len. Y",  value=self.model.maxv[1]-self.model.minv[1], step=0.1)
+        self.stockMinX=NumericalParameter(parent=self, name="Min. X",  value=self.model_minv[0], step=0.1)
+        self.stockMinY=NumericalParameter(parent=self, name="Min. Y",  value=self.model_minv[1], step=0.1)
+        self.stockSizeX=NumericalParameter(parent=self, name="Len. X",  value=self.model_maxv[0]-self.model_minv[0], step=0.1)
+        self.stockSizeY=NumericalParameter(parent=self, name="Len. Y",  value=self.model_maxv[1]-self.model_minv[1], step=0.1)
         
         self.operation=ChoiceParameter(parent=self,  name="Operation",  choices=["Slice",  "Slice & Drop",  "Outline",  "Medial Lines"],  value="Slice")
         self.direction=ChoiceParameter(parent=self,  name="Direction",  choices=["inside out",  "outside in"],  value="inside out")
@@ -348,8 +357,8 @@ class SliceTask(MillTask):
         self.pathRounding = NumericalParameter(parent=self,  name='path rounding',  value=0.0,  min=0,  max=10,  step=0.01)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
-        self.sliceTop=NumericalParameter(parent=self, name="Slice top",  value=self.model.maxv[2],  step=0.1,  enforceRange=False,  enforceStep=False)
-        self.sliceBottom=NumericalParameter(parent=self, name="bottom",  value=self.model.minv[2],  step=0.1,  enforceRange=False,  enforceStep=False)
+        self.sliceTop=NumericalParameter(parent=self, name="Slice top",  value=self.model_maxv[2],  step=0.1,  enforceRange=False,  enforceStep=False)
+        self.sliceBottom=NumericalParameter(parent=self, name="bottom",  value=self.model_minv[2],  step=0.1,  enforceRange=False,  enforceStep=False)
         self.sliceStep=NumericalParameter(parent=self, name="step",  value=100.0,  step=0.1,  enforceRange=False,  enforceStep=False)
         self.sliceIter=NumericalParameter(parent=self, name="iterations",  value=0,  step=1,  enforceRange=False,  enforceStep=True)
 
