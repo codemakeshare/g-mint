@@ -642,7 +642,7 @@ class SliceTask(MillTask):
             iterations=max_iterations
             if iterations<=0:
                 iterations=1
-                
+
             input = patternLevels[sliceLevel]
             offsetOutput = []
             while len(input)>0 and ( iterations>0):

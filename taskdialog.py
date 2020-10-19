@@ -29,7 +29,7 @@ class TaskDialog(QtGui.QWidget):
                                            ("Boring", BoringTool),
                                            ("Threading", ThreadingTool),
                                            ("timing pulley",TimingPulleyTool),
-                                           ("SVG engrage", SVGEngraveTask)])
+                                           ("SVG engrave", SVGEngraveTask)])
 
         self.tasktab = ListWidget(itemlist=[], title="Milling tasks", itemclass=self.availableTasks, name="Task",
                                   tools=tools, model=modelmanager, on_select_cb=self.display_pattern, viewUpdater=self.modelmanager.viewer.showPath)

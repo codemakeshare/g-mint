@@ -53,7 +53,7 @@ def svgparselength(lengthstr):
     raise Exception('Cannot parse SVG length: %s' % lengthstr)
 
 
-def path2shapely(path, res=1.0):
+def path2shapely(path, res=0.2):
     """
     Converts an svg.path.Path into a Shapely
     LinearRing or LinearString.

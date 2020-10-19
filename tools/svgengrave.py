@@ -52,10 +52,12 @@ class SVGEngraveTask(SliceTask):
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
-        self.parameters = [self.inputFile, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.operation, self.direction, self.sideStep, self.traverseHeight,
+        self.parameters = [self.inputFile, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.operation, self.direction, self.toolSide, self.sideStep, self.traverseHeight,
                            self.radialOffset,
                            self.pathRounding, self.precision, self.sliceTop, self.sliceBottom, self.sliceStep, self.sliceIter, self.scalloping]
         self.patterns = None
+
+
 
     def generatePattern(self):
         tree = ET.parse(self.inputFile.getValue())
@@ -79,6 +81,11 @@ class SVGEngraveTask(SliceTask):
                     points = [(x[0], -x[1], 0) for x in list(poly.exterior.coords)]
                     self.patterns.append(points)
 
+        self.model_minv, self.model_maxv = polygon_bounding_box([p for pattern in self.patterns for p in pattern ])
+        self.stockMinX.updateValue(self.model_minv[0])
+        self.stockMinY.updateValue(self.model_minv[1])
+        self.stockSizeX.updateValue(self.model_maxv[0] - self.model_minv[0])
+        self.stockSizeY.updateValue(self.model_maxv[1] - self.model_minv[1])
         print(self.patterns)
 
 

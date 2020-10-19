@@ -102,7 +102,7 @@ class ObjectViewer(QtGui.QWidget):
             self.w.addItem(self.p1)
 
     def showPath(self, path, color=(1.0, 0.0, 0.0, 1.0), width=1, tool = None):
-        print(tool)
+        print("showPath", tool)
         if tool is not None:
             self.showTool(tool)
         else:
