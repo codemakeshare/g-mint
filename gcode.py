@@ -309,7 +309,8 @@ class GCode:
             output += "" + p.to_output()
             if p.feedrate is not None and (p.control_point or p.rapid == False and p.feedrate != current_feedrate):
                 current_feedrate = p.feedrate
-                output += "F%f" % p.feedrate
+                if not p.control_point:
+                    output += "F%f" % p.feedrate
             #if p.feedrate is None and current_feedrate != self.default_feedrate:
             #    current_feedrate = self.default_feedrate
             #    output += "F%f" % current_feedrate

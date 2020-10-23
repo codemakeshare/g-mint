@@ -13,7 +13,7 @@ from tools import *
 from solids import *
 import sys
 
-from gui_elements import *
+from guifw.gui_elements import *
 
 #from modeldialog import *
 from pathdialog import *
