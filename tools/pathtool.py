@@ -48,7 +48,7 @@ class PathTool(ItemWithParameters):
         self.maxDepthStep=NumericalParameter(parent=self,  name='max. depth step',  value=10.0,  min=0.1,  max=100,  step=1)
         self.rampdown=NumericalParameter(parent=self,  name='rampdown per loop (0=off)',  value=0.1,  min=0.0,  max=10,  step=0.01)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=startdepth+5.0,  enforceRange=False,  step=1.0)
-        self.laser_mode = NumericalParameter(parent=self,  name='laser mode',  value=0.0,  min=0.0,  max=1.0,  enforceRange=True,  step=1.0)
+        self.laser_mode = NumericalParameter(parent=self,  name='laser mode (power 0-100)',  value=0.0,  min=0.0,  max=100.0,  enforceRange=True,  step=1.0, callback = self.updateView)
         self.depthStepping=ActionParameter(parent=self,  name='Depth ramping',  callback=self.applyDepthStep)
         self.depthSteppingRelRamp = CheckboxParameter(parent=self, name='relative ramping')
         self.tabs = NumericalParameter(parent=self, name='Tabs per contour', value=0, min=0, max=20, step=1)
@@ -246,13 +246,14 @@ class PathTool(ItemWithParameters):
     def getCompletePath(self):
         completePath = GCode(path=[])
         completePath.default_feedrate=self.feedrate.getValue()
-        completePath.laser_mode = (self.laser_mode.getValue() > 0.5)
+        completePath.laser_mode = (self.laser_mode.getValue() > 0.1)
+        completePath.laser_power = self.laser_mode.getValue()*10
         print("gCP lasermode", completePath.laser_mode, self.laser_mode.getValue())
         for path in self.outpaths:
             completePath.combinePath(path)
         return completePath
 
-    def updateView(self):
+    def updateView(self, val=None):
         #for line in traceback.format_stack():
         #    print(line.strip())
         if self.viewUpdater!=None:
@@ -319,7 +320,7 @@ class PathTool(ItemWithParameters):
             return
         for i in range(0, tabs):
             length = i * seg_len / tabs
-            print(length, seg_len)
+            #print(length, seg_len)
             i1, p = polygon_point_at_position(segment, length)
             height = p[2]
             segment.insert(i1, GPoint(position = [x for x in p]))

@@ -18,7 +18,7 @@ class PathDialog(QtGui.QWidget):
         # itemlist=[threading_tool.ThreadingTool(viewUpdater=self.modeltab.viewer.showPath)]
         view_updater=None
         if self.viewer is not None:
-            view_updater = self.viewer.showPath
+            view_updater = self.update_view
         tool=None
         if tools is not None:
             tool = tools[0]
@@ -42,6 +42,12 @@ class PathDialog(QtGui.QWidget):
             self.pathtab.listmodel.addItem(
                 PathTool(name="combined", path=newPath, viewUpdater=checkedItems[0].viewUpdater, tool=default_tool))
 
+    def update_view(self, path, tool):
+        if self.viewer is not None:
+                self.viewer.showPath(path, tool)
+        if self.editor is not None:
+                self.editor.updateText(path.toText(pure=True))
+                
     def display_path(self, pathtool):
         global camgui
 

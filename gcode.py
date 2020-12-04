@@ -108,7 +108,7 @@ class GArc(GPoint):
             print("radius mismatch:", radius, radius2)
 
         if int(self.arcdir) == 3:
-            print(int(self.arcdir))
+            #print(int(self.arcdir))
             while end_angle > start_angle:
                 end_angle -= 2.0 * PI
             while angle > end_angle:
@@ -143,6 +143,7 @@ class GCode:
         self.rapid_feedrate = 3000
         self.initialisation = "G90G21G17G54\n"
         self.laser_mode = False
+        self.laser_power = 1000
         self.steppingAxis = 2 # major cutting axis for step-down (incremental cutting). Normally z-axis on mills.
 
 
@@ -295,7 +296,7 @@ class GCode:
                     else:
                         if self.laser_mode:
                             # in laser mode, issue a spindle on command after rapids
-                            output += "M4 S1000\n"
+                            output += "M4 S%i\n"%(self.laser_power)
 
                         if p.gmode != current_gmode:
                             current_gmode = p.gmode
