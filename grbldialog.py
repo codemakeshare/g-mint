@@ -141,8 +141,9 @@ class GrblInterface():
         self.update_pending = True
 
         self.feedrate = 1000
-        self.axes = [0.0, 0.0, 0.0]
-        self.offsets = [0.0, 0.0, 0.0]
+        self.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # coordinates in work coordinate space
+        self.m_axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # coordinates in machine space
+        self.offsets = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.overrides = [100.0, 100.0, 100.0]
         self.current_jog_dir=[0.0, 0.0, 0.0]
         self.jog_scale = [1000, 1000, 1000]
@@ -186,7 +187,7 @@ class GrblInterface():
         # (to capture short movements, to avoid missing the Idle->Jog->Idle transition)
         if (self.status != "Idle" or self.last_transmission_timer < 200) and \
                 ((self.last_transmission_timer % 500) == 0 or (
-                        not self.update_pending and (self.last_transmission_timer % 50) == 0)):
+                        not self.update_pending and (self.last_transmission_timer % 100) == 0)):
             self.getUpdate()
         self.last_transmission_timer += 1
 
@@ -208,9 +209,11 @@ class GrblInterface():
                 for i in range(1, len(parts)):
                     part = parts[i]
                     if part[0:5] == "MPos:":
-                        self.axes = [float(c) for c in part[5:].split(",")]
+                        self.m_axes = [float(c) for c in part[5:].split(",")]
+                        self.axes = [self.m_axes[i]-self.offsets[i] for i in range(0, len(self.m_axes))]
                     if part[0:5] == "WPos:":
                         self.axes = [float(c) for c in part[5:].split(",")]
+                        self.m_axes = [self.axes[i]+self.offsets[i] for i in range(0, len(self.axes))]
 
                     if part[0:4] == "WCO:":
                         self.offsets = [float(c) for c in part[4:].split(",")]
@@ -221,8 +224,8 @@ class GrblInterface():
                         print("overrides: ", self.overrides)
                     if part[0:3] == "FS:":
                         self.actualFeed = [float(c) for c in part[3:].split(",")]
-        except:
-            print("GRBL parse error:", line)
+        except Exception as e:
+            print("GRBL parse error:", line, e)
         # print self.status, "mpos:", self.axes, "off:", self.offsets
         if self.status_callback is not None:
             self.status_callback(self)
@@ -488,7 +491,7 @@ class AxesWidget(QtGui.QWidget):
         for i in range(0, self.number_of_axes):
             if self.machine_axes[i] in self.axes_names:
                 di = self.axes_names.index(self.machine_axes[i])
-                self.position_fields[di].updateValue(machine_interface.axes[i] - machine_interface.offsets[i])
+                self.position_fields[di].updateValue(machine_interface.axes[i])
 
 
 class CursorWidget(QtGui.QWidget):
