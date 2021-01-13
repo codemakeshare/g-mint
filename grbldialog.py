@@ -100,7 +100,7 @@ def auto_detect_serial_unix(preferred_list=['*']):
     '''try to auto-detect serial ports on unix'''
     import glob
     # glist = glob.glob('/dev/ttyS*') + glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob('/dev/serial/by-id/*')
-    glist = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob('/dev/serial/by-id/*') + glob.glob('/dev/tty.usb*')
+    glist = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + glob.glob('/dev/serial/by-id/*') + glob.glob('/dev/tty.usb*') + glob.glob('/dev/tty.wchusb*')
     ret = []
     others = []
     # try preferred ones first
@@ -540,7 +540,7 @@ class CursorWidget(QtGui.QWidget):
 
         self.jogfeed = LabeledNumberField(label="Jogspeed", min=0, max=1000, value=400, step=50, slider=True)
         self.jogfeed.number.valueChanged.connect(self.rapidButtonClicked)
-        self.rapidfeed = LabeledNumberField(label="Rapid speed", min=0, max=2000, value=2000, step=50)#, slider=False)
+        self.rapidfeed = LabeledNumberField(label="Rapid speed", min=0, max=8000, value=2000, step=50)#, slider=False)
         layout.addWidget(self.rapidfeed)
         layout.addWidget(self.jogfeed)
         #self.setFixedWidth(buttonsize*4 +35)
@@ -835,7 +835,7 @@ class GrblDialog(QtGui.QWidget):
         self.serialSelect.updateChoices([s.device for s in self.serialPorts])
 
     def reopenSerial(self, index):
-        if index>=0 and index<len(self.serialPorts)-1:
+        if index>=0 and index<len(self.serialPorts):
             device=self.serialPorts[index]
             print (device)
             self.machine_interface.reopenSerial(device)
