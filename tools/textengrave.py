@@ -19,6 +19,8 @@ class TextEngraveTask(SliceTask):
         self.path=None
 
         self.textInput = TextParameter(parent=self, name="input text", value="text")
+        self.fontsize = NumericalParameter(parent=self,  name='font size',  value=14,  min=1,  max=1000,  step=1.0)
+        self.font = FileParameter(parent=self, name="font", value = '/usr/share/fonts/truetype/open-sans/OpenSans-Regular.ttf', fileSelectionPattern="TTF font (*.ttf)")
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
         self.operation = ChoiceParameter(parent=self, name="Operation", choices=["Slice", "Slice & Drop", "Outline", "Medial Lines"], value="Slice")
@@ -47,18 +49,19 @@ class TextEngraveTask(SliceTask):
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
-        self.parameters = [self.textInput, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.operation, self.direction, self.toolSide, self.sideStep, self.traverseHeight,
+        self.parameters = [self.textInput, self.fontsize, self.font, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.operation, self.direction, self.toolSide, self.sideStep, self.traverseHeight,
                            self.radialOffset,
                            self.pathRounding, self.precision, self.sliceTop, self.sliceBottom, self.sliceStep, self.sliceIter, self.scalloping]
         self.patterns = None
 
 
-        self.face = Face('/usr/share/fonts/truetype/open-sans/OpenSans-Regular.ttf')
+        self.face = Face(self.font.getValue())
         self.face.set_char_size(48 * 64)
 
 
-    def generateCharacter(self, character='a', pos = [0,0, 0.0, 0.0]):
+    def generateCharacter(self, character='a', pos = [0,0, 0.0, 0.0], scaling = 2.54 / 72.0 ):
         # adapted from https://medium.com/@femion/text-to-svg-paths-7f676de4c12b
+
         self.face.load_char(character)
 
         outline = self.face.glyph.outline
@@ -106,18 +109,26 @@ class TextEngraveTask(SliceTask):
             path = Path(*contour)
             segPath = []
             NUM_SAMPLES = 100
+
             for i in range(NUM_SAMPLES):
                 p = path.point(i /(float(NUM_SAMPLES)-1))
-                segPath.append([p.real/64.0+pos[0], -p.imag/64.0+pos[1], 0+pos[2]])
+                segPath.append([p.real*scaling + pos[0], -p.imag * scaling + pos[1], 0+pos[2]])
 
             paths.append(segPath)
         return paths
 
     def generatePattern(self):
+
+        scaling = 25.4 / 72.0 / 64.0  # freetype dimensions are in points, 1/72 of an inch. Convert to millimeters...
+        self.face = Face(self.font.getValue())
+
+        self.face.set_char_size(self.fontsize.getValue() * 64)
+
         slot = self.face.glyph
         self.patterns=[]
         pos = [0.0, 0.0, 0.0]
         last_char = None
+
         for c in self.textInput.getValue():
             kerning = self.face.get_kerning(" ", " ")
 
@@ -126,9 +137,9 @@ class TextEngraveTask(SliceTask):
             print ("kerning ", last_char, c, kerning.x, slot.advance.x)
             last_char = c
 
-            pos[0] += (kerning.x/ 64.0)
-            paths=self.generateCharacter(character = c, pos = pos)
-            pos[0]+=slot.advance.x / 64.0
+            pos[0] += (kerning.x * scaling)
+            paths=self.generateCharacter(character = c, pos = pos, scaling = scaling)
+            pos[0]+=slot.advance.x * scaling
 
             for p in paths:
                 self.patterns.append(p)
