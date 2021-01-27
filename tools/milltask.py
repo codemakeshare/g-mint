@@ -362,6 +362,9 @@ class SliceTask(MillTask):
         self.sliceStep=NumericalParameter(parent=self, name="step",  value=100.0,  step=0.1,  enforceRange=False,  enforceStep=False)
         self.sliceIter=NumericalParameter(parent=self, name="iterations",  value=0,  step=1,  enforceRange=False,  enforceStep=True)
 
+        self.toolSide = ChoiceParameter(parent=self, name="Tool side", choices=["external", "internal"],
+                                        value="external")
+
         self.scalloping=NumericalParameter(parent=self, name="scalloping",  value=0,  step=1,  enforceRange=False,  enforceStep=True)
 
         self.parameters=[self.tool, [self.stockMinX,  self.stockMinY],  [self.stockSizeX,  self.stockSizeY], self.operation, self.direction,  self.sideStep, self.traverseHeight,   self.radialOffset,   self.pathRounding, self.precision,  self.sliceTop,  self.sliceBottom, self.sliceStep,  self.sliceIter,  self.scalloping]
@@ -618,9 +621,17 @@ class SliceTask(MillTask):
         output=[]
 
         #define bounding box with tool radius and offset added
-        radius=self.tool.getValue().diameter.value/2.0+self.radialOffset.value
-        bound_min=[self.stockMinX.getValue() - radius,  self.stockMinY.getValue()-radius]
-        bound_max=[self.stockMinX.getValue()+self.stockSizeX.getValue()+radius,  self.stockMinY.getValue()+ self.stockSizeY.getValue()+radius]
+        bradius=self.tool.getValue().diameter.value/2.0+self.radialOffset.value
+
+        if self.toolSide.getValue() == "external":
+            #if max_iterations>0: # for bounding box calculations only
+            #    bradius += max_iterations * self.sideStep.value
+            pass
+        else:
+            bradius = -bradius
+
+        bound_min=[self.stockMinX.getValue() - bradius,  self.stockMinY.getValue()-bradius]
+        bound_max=[self.stockMinX.getValue()+self.stockSizeX.getValue()+bradius,  self.stockMinY.getValue()+ self.stockSizeY.getValue()+bradius]
 
         # sort patterns by slice levels
         patternLevels=dict()
@@ -639,6 +650,9 @@ class SliceTask(MillTask):
 
             print("Slice Level: ", sliceLevel)
             radius=self.tool.getValue().diameter.value/2.0+self.radialOffset.value
+            if self.toolSide.getValue() == "internal":
+                radius = -radius
+
             iterations=max_iterations
             if iterations<=0:
                 iterations=1
@@ -672,10 +686,10 @@ class SliceTask(MillTask):
                 offset = pyclipper.CleanPolygons(offset,  distance=scaling*self.precision.getValue())
 
                 # trim to outline
-                polytrim = pyclipper.Pyclipper()  #Pyclipper
-                polytrim.AddPath(bbpoly,  poly_type=pyclipper.PT_CLIP, closed=True)
-                polytrim.AddPaths(offset,  poly_type=pyclipper.PT_SUBJECT, closed=True)
                 try:
+                    polytrim = pyclipper.Pyclipper()  #Pyclipper
+                    polytrim.AddPath(bbpoly,  poly_type=pyclipper.PT_CLIP, closed=True)
+                    polytrim.AddPaths(offset,  poly_type=pyclipper.PT_SUBJECT, closed=True)
                     offset = polytrim.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD)
                 except:
                     print("clipping intersection error")
@@ -685,8 +699,11 @@ class SliceTask(MillTask):
                     offsetOutput.append([[x[0]/scaling,  x[1]/scaling, sliceLevel]  for x in reversed(poly)])
                     if recursive:
                         input.append([[x[0]/scaling,  x[1]/scaling, sliceLevel]  for x in poly])
-                
-                radius = self.sideStep.value
+
+                if self.toolSide.getValue() == "external":
+                    radius = self.sideStep.value
+                else:
+                    radius = -self.sideStep.value
                 iterations -= 1
             #self.patterns = input
             #offsetOutput.reverse()

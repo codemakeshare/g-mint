@@ -18,7 +18,6 @@ class SVGEngraveTask(SliceTask):
         self.patterns=[]
         self.path=None
 
-
         # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
         #self.axis_mapping=["Z", "X", "Y"]
         # scaling factors for output. We use factor -2.0 for x (diameter instead of radius), inverted from negative Y coordinate in viz
