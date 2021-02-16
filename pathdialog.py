@@ -16,14 +16,14 @@ class PathDialog(QtGui.QWidget):
 
         self.availablePathTools = availablePathTools
         # itemlist=[threading_tool.ThreadingTool(viewUpdater=self.modeltab.viewer.showPath)]
-        view_updater=None
+        self.view_updater=None
         if self.viewer is not None:
-            view_updater = self.update_view
+            self.view_updater = self.update_view
         tool=None
         if tools is not None:
             tool = tools[0]
         self.pathtab = ListWidget(itemlist=[], title="Paths", itemclass=self.availablePathTools,
-                                  on_select_cb=self.display_path, viewUpdater=view_updater, tool=tool, name="-")
+                                  on_select_cb=self.display_path, viewUpdater=self.view_updater, tool=tool, name="-")
 
         self.layout.addWidget(self.pathtab, 0, 0, 1, 2)
         combine_paths_btn = QtGui.QPushButton("combine paths")
@@ -43,9 +43,12 @@ class PathDialog(QtGui.QWidget):
                 PathTool(name="combined", path=newPath, viewUpdater=checkedItems[0].viewUpdater, tool=default_tool))
 
     def update_view(self, path, tool):
+        print('pathdialog update view')
         if self.viewer is not None:
+                print("update path")
                 self.viewer.showPath(path, tool)
         if self.editor is not None:
+                print("update editor")
                 self.editor.updateText(path.toText(pure=True))
                 
     def display_path(self, pathtool):

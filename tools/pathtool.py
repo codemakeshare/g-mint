@@ -67,9 +67,9 @@ class PathTool(ItemWithParameters):
         self.trochoidalSkip=NumericalParameter(parent=self,  name='skip',  value=1.0,  min=1,  max=100000,  step=1)
         self.trochoidalOuterDist=NumericalParameter(parent=self,  name='outer dist',  value=1.0,  min=0,  max=100000,  step=1)
         self.trochoidalMilling = ActionParameter(parent=self,  name='trochoidal',  callback=self.calcTrochoidalMilling)
-        self.feedrate=NumericalParameter(parent=self,  name='default feedrate',  value=feedrate,  min=1,  max=5000,  step=10,  callback=self.updateEstimate)
+        self.feedrate=NumericalParameter(parent=self,  name='default feedrate',  value=feedrate,  min=1,  max=5000,  step=10,  callback=self.updateView)
         self.plunge_feedrate = NumericalParameter(parent=self, name='plunge feedrate', value=feedrate/2.0, min=1, max=5000,
-                                           step=10, callback=self.updateEstimate)
+                                           step=10, callback=self.updateView)
         self.filename=TextParameter(parent=self,  name="output filename",  value=outputFile)
         self.saveButton=ActionParameter(parent=self,  name='Save to file',  callback=self.save)
         self.appendButton=ActionParameter(parent=self,  name='append from file',  callback=self.appendFromFile)
@@ -275,6 +275,7 @@ class PathTool(ItemWithParameters):
         self.estimatedTime.updateValue("%s (%s)"%(str(datetime.timedelta(seconds=int(estimate[1]*60))),
                                                            str(datetime.timedelta(seconds=int(estimate[5]*60)))))
         self.estimatedDistance.updateValue("{:.1f} (c {:.0f})".format(estimate[0],  estimate[3],  estimate[4]))
+
 
 
     def appendFromFile(self):

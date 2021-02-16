@@ -271,8 +271,9 @@ class GCode:
                 output += "( " + "Path estimate: Length: %f mm;  Duration: %f minutes. Last feedrate: %f" % (
                 estimate[0], estimate[1], estimate[2]) + " )\n"
                 output += "G90G21G17G54\n"
-            if self.default_feedrate != None:
-                output += "F%f\n" % (self.default_feedrate)
+
+        if self.default_feedrate != None:
+            output += "G1F%f\n" % (self.default_feedrate)
         complete_path = self.path
         # if self.outpaths!=None and len(self.outpaths)>0:
         #     complete_path=[]

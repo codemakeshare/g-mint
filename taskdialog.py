@@ -82,11 +82,11 @@ class TaskDialog(QtGui.QWidget):
     def startSelectedTask(self):
         try:
             newPath = self.tasktab.selectedTool.calcPath()
-            existingPath = self.path_output.findItem(self.tasktab.selectedTool.name.value)
+            existingPath = self.path_output.pathtab.findItem(self.tasktab.selectedTool.name.value)
             if existingPath is None:
-                self.path_output.listmodel.addItem(
+                self.path_output.pathtab.listmodel.addItem(
                     PathTool(name=self.tasktab.selectedTool.name.value, path=newPath, model=self.tasktab.selectedTool.model,
-                             viewUpdater=self.updateView, tool=self.tasktab.selectedTool.tool.getValue(),
+                             viewUpdater=self.path_output.view_updater, tool=self.tasktab.selectedTool.tool.getValue(),
                              source=self.tasktab.selectedTool))
             else:
                 # update path

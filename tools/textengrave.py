@@ -20,17 +20,15 @@ class TextEngraveTask(SliceTask):
 
         self.textInput = TextParameter(parent=self, name="input text", value="text")
         self.fontsize = NumericalParameter(parent=self,  name='font size',  value=14,  min=1,  max=1000,  step=1.0)
-        self.font = FileParameter(parent=self, name="font", value = '/usr/share/fonts/truetype/open-sans/OpenSans-Regular.ttf', fileSelectionPattern="TTF font (*.ttf)")
+        self.font = FileParameter(parent=self, name="font", value = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', fileSelectionPattern="TTF font (*.ttf)")
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
-        self.operation = ChoiceParameter(parent=self, name="Operation", choices=["Slice", "Slice & Drop", "Outline", "Medial Lines"], value="Slice")
         self.direction = ChoiceParameter(parent=self, name="Direction", choices=["inside out", "outside in"], value="outside in")
+        self.toolSide = ChoiceParameter(parent=self, name="Tool side", choices=["external", "internal"],
+                                        value="internal")
 
-        self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
-        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+10,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
+        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+1,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
-        self.waterlevel=NumericalParameter(parent=self,  name='waterlevel',  value=self.model.minv[2],  min=self.model.minv[2],  max=self.model.maxv[2],  step=1.0)
-        self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)
         self.viewUpdater=viewUpdater
 
         self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=self.model.minv[0], step=0.01)
@@ -49,9 +47,9 @@ class TextEngraveTask(SliceTask):
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
-        self.parameters = [self.textInput, self.fontsize, self.font, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.operation, self.direction, self.toolSide, self.sideStep, self.traverseHeight,
+        self.parameters = [self.textInput, self.fontsize, self.font, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.direction, self.toolSide, self.sideStep, self.traverseHeight,
                            self.radialOffset,
-                           self.pathRounding, self.precision, self.sliceTop, self.sliceBottom, self.sliceStep, self.sliceIter, self.scalloping]
+                           self.pathRounding, self.precision, self.sliceIter]
         self.patterns = None
 
 

@@ -40,7 +40,13 @@ class CAMGui(QtGui.QSplitter):
         self.availableToolTypes = OrderedDict([("milling", Tool),
                                                ("lathe", Tool_lathe_insert)])
 
-        self.tooltab=ListWidget(itemlist=[Tool(), Tool_lathe_insert(viewer = self.modeltab.viewer)], title="Tools", itemclass=self.availableToolTypes,  name=None, viewer = self.modeltab.viewer)
+        laser_tool = Tool(name="Laser", diameter=0.1)
+        laser_tool.flutes.updateValue(1)
+        laser_tool.surfacespeed.updateValue(10)
+        default_tools = [laser_tool, Tool(diameter=6), Tool_lathe_insert(viewer = self.modeltab.viewer)]
+
+
+        self.tooltab=ListWidget(itemlist= default_tools, title="Tools", itemclass=self.availableToolTypes,  name=None, viewer = self.modeltab.viewer)
         self.tabs.addTab(self.tooltab,  "Tools")
 
         self.availablePathTools = OrderedDict([("Load GCode",  PathTool),
@@ -48,7 +54,7 @@ class CAMGui(QtGui.QSplitter):
         #itemlist=[threading_tool.ThreadingTool(viewUpdater=self.modeltab.viewer.showPath)]
         #self.pathtab=ListWidget(itemlist=[],  title="Paths",  itemclass=self.availablePathTools,  on_select_cb=self.display_path,  viewUpdater=self.modeltab.viewer.showPath)
         self.pathtab = PathDialog(viewer = self.modeltab.viewer,  tools=self.tooltab.listmodel.listdata, editor=self.editor, availablePathTools = self.availablePathTools)
-        self.milltab=TaskDialog(modelmanager=self.modeltab,  tools=self.tooltab.listmodel.listdata,  path_output=self.pathtab.pathtab)
+        self.milltab=TaskDialog(modelmanager=self.modeltab,  tools=self.tooltab.listmodel.listdata,  path_output=self.pathtab)
         self.grbltab = GrblDialog(path_dialog=self.pathtab, editor=self.editor)
 
         self.tabs.addTab(self.milltab,  "Milling tasks")
