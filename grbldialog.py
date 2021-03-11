@@ -652,10 +652,14 @@ class GCodeWidget(QtGui.QWidget):
         buttonlayout.addStretch()
         buttonlayout.setSpacing(0)
 
+
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0,0,0,0)
-
         self.layout.addWidget(self.buttonwidget)
+
+        self.repeatProgram = LabeledNumberField(label="repeats", value=0, min=0, step=1.0)
+        self.layout.addWidget(self.repeatProgram)
+
         self.feedrate_override = LabeledNumberField(label="Feedrate override", min=0, max=200, value=100, step=1.0,
                                                     slider=True)
         self.feedrate_override.number.valueChanged.connect(self.feedrateOverrideHandler)
@@ -691,7 +695,14 @@ class GCodeWidget(QtGui.QWidget):
                 self.editor.highlightLine(self.current_line_number, refresh = True)
             self.current_line_number += 1
         else:
-            self.send_timer.stop()
+            repeats = self.repeatProgram.number.value
+            if repeats>1: # repeat program specified number of times
+                #decrement counter
+                self.repeatProgram.updateValue(repeats - 1)
+                # reset line number to restart program
+                self.current_line_number = 0
+            else: # if no repeats, stop program
+                self.send_timer.stop()
 
     def startPushed(self):
         if self.editor is not None:
