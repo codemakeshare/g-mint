@@ -19,6 +19,7 @@ class BoringTool(ItemWithParameters):
 
         self.xpos = NumericalParameter(parent=self,  name='x ',  value=0,   min=-2000,  max=2000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         self.ypos = NumericalParameter(parent=self,  name='y ',  value=0,   min=-2000,  max=2000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
+        self.apos = NumericalParameter(parent=self, name='a ', value=0, min=-360, max=360, enforceRange=False, step=0.1, callback=self.generatePath)
         
         self.startDiameter = NumericalParameter(parent=self,  name='start diameter',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         self.diameter = NumericalParameter(parent=self,  name='final diameter',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.01,  callback = self.generatePath)
@@ -29,7 +30,8 @@ class BoringTool(ItemWithParameters):
 
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=5.0,  enforceRange=False,  step=1.0,  callback = self.generatePath)
 
-        self.parameters=[self.tool, self.millingDirection,  [  self.xpos,  self.ypos],  self.startDepth, self.stopDepth,  self.stepDepth,  self.startDiameter,  self.diameter, self.radialStepover,  self.pitch,  self.coneAngle,  self.backoffPercentage,  self.traverseHeight ]
+        self.parameters=[self.tool, self.millingDirection,  [  self.xpos,  self.ypos, self.apos],  self.startDepth, self.stopDepth,  self.stepDepth,  self.startDiameter,  self.diameter,
+                         self.radialStepover,  self.pitch,  self.coneAngle,  self.backoffPercentage,  self.traverseHeight ]
         self.generatePath(None)
 
     def setThread(self,  diameter,  pitch,  angle,  tool):
@@ -43,13 +45,14 @@ class BoringTool(ItemWithParameters):
         self.setThread(*params)
         
 
-    def generatePath(self,  parameter):
+    def generatePath(self,  parameter = None):
         self.path.outpaths=[]
         path = []
         self.path.path=[]
         cx=self.xpos.getValue()
         cy=self.ypos.getValue()
-        pos = [cx,  cy, 0] 
+        ca=self.apos.getValue()
+        pos = [cx,  cy, 0, ca]
         start_depth = self.startDepth.getValue() 
         final_depth = self.stopDepth.getValue()
         pitch = self.pitch.getValue()
@@ -76,7 +79,7 @@ class BoringTool(ItemWithParameters):
             x=(1.0-backoff_percentage)*x + backoff_percentage*pos[0]
             y=(1.0-backoff_percentage)*y + backoff_percentage*pos[1]
 
-            path.append(GPoint(position=([x, y, traverse_height]),  rapid=True))
+            path.append(GPoint(position=([x, y, traverse_height]), rotation=([ca, 0, 0]),  rapid=True))
             z=start_depth
             path.append(GPoint(position=([x,y,z])))
             i=0 # current angle around hole center
@@ -130,7 +133,8 @@ class BoringTool(ItemWithParameters):
             
             self.path.path += path
             path=[]
-            
+            self.patterns = self.path
+
         if self.viewUpdater!=None:
             self.viewUpdater(self.path)
 
@@ -139,4 +143,5 @@ class BoringTool(ItemWithParameters):
         self.path.write(self.filename.getValue())
 
     def calcPath(self):
+        self.generatePath()
         return self.path
