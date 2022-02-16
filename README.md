@@ -66,7 +66,14 @@ dependencies (may be incomplete):
 - python3
 - PyQT5
 - pyqtgraph
+- pyclipper
 - pyserial
+
+on ubuntu:
+sudo apt install python3 python3-pyqt5 python3-pyqt5.qtopengl python3-pyqt5.qsci python3-opengl python3-numpy python3-scipy python3-pip python3-svg.path python3-shapely python3-serial
+pip3 install pyqtgraph
+pip3 install pyclipper
+
 
 to run:
 python3 mincam.py

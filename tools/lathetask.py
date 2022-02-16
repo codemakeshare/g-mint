@@ -63,9 +63,11 @@ class LatheTask(ItemWithParameters):
 
         self.sliceLevel=NumericalParameter(parent=self, name="Slice level",  value=0,  step=0.1,  enforceRange=False,  enforceStep=False)
 
+        self.rotAxisAdvance = NumericalParameter(parent=self, name="A axis advance",  value=0.0,  min=0.0,  step=0.01)
+
         self.parameters=[self.outputFormatChoice, [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool, self.toolwidth, self.toolSide, self.operation, self.direction,
                          self.sideStep,
-                          self.retract, self.traverseHeight,
+                          self.retract, self.traverseHeight, self.rotAxisAdvance,
                          self.radialOffset, self.precision,  self.sliceLevel]
         self.patterns=None
         
@@ -282,6 +284,29 @@ class LatheTask(ItemWithParameters):
 
         return offset_path
 
+    def applyRotAxisAdvance(self, path, feedAdvance):
+
+        angle = 0
+        new_path = []
+        p = path[0]
+        p.rotation = [0,0,0]
+        current_pos = p.position
+        new_path.append(p)
+        for p in path[1:]:
+            # calculate distance traveled on this line segment
+            segmentLength = dist(current_pos, p.position)
+            if segmentLength>0:
+                if not p.rapid:
+                    # add proportional rotation to 4th axis, to get "feedAdvance" stepover per revolution
+                    angle += segmentLength / feedAdvance * 360
+
+                    #modify the path points with the angle
+                    p.rotation = [angle, 0, 0]
+                new_path.append(p)
+                current_pos = p.position
+
+        return new_path
+
     def calcPath(self):
 
         patterns = self.patterns
@@ -321,8 +346,13 @@ class LatheTask(ItemWithParameters):
         #offset_path = [[GPoint(position=(p[0], p[1], p[2])) for p in segment] for segment in offset_path]
 
         #self.path = GCode([p for segment in offset_path for p in segment])
+
+
+
+
         self.path = GCode(offset_path)
         self.path.default_feedrate = 50
+
 
         format = self.outputFormatChoice.getValue()
         # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
@@ -334,6 +364,8 @@ class LatheTask(ItemWithParameters):
         self.path.applyAxisScaling(self.axis_scaling)
         self.path.steppingAxis = 1
 
+        if self.rotAxisAdvance.getValue()>0:
+            self.path.path = self.applyRotAxisAdvance(self.path.path, self.rotAxisAdvance.getValue())
 
         return self.path
 

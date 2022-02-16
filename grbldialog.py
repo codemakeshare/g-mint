@@ -695,7 +695,7 @@ class GCodeWidget(QtGui.QWidget):
                 self.editor.highlightLine(self.current_line_number, refresh = True)
             self.current_line_number += 1
         else:
-            repeats = self.repeatProgram.number.value
+            repeats = self.repeatProgram.number.value()
             if repeats>1: # repeat program specified number of times
                 #decrement counter
                 self.repeatProgram.updateValue(repeats - 1)
