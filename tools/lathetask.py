@@ -29,7 +29,6 @@ class LatheTask(ItemWithParameters):
         self.outputFormatChoice= ChoiceParameter(parent=self, name="Output format", choices=list(self.output_format.keys()), value=list(self.output_format.keys())[0])
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
-        self.toolwidth=NumericalParameter(parent=self, name="tool width",  value=2.0, step=0.01)
 
         self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+10,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
@@ -43,7 +42,6 @@ class LatheTask(ItemWithParameters):
         self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=self.model.maxv[0], step=0.01)
         self.innerBound=NumericalParameter(parent=self, name="inner boundary",  value=0, step=0.01)
         self.outerBound=NumericalParameter(parent=self, name="outer boundary",  value=self.model.maxv[1], step=0.01)
-
 
 
         self.toolSide=ChoiceParameter(parent=self,  name="Tool side",  choices=["external",  "internal"], value = "external")
@@ -65,9 +63,11 @@ class LatheTask(ItemWithParameters):
 
         self.rotAxisAdvance = NumericalParameter(parent=self, name="A axis advance",  value=0.0,  min=0.0,  step=0.01)
 
-        self.parameters=[self.outputFormatChoice, [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool, self.toolwidth, self.toolSide, self.operation, self.direction,
+        self.parameters=[self.outputFormatChoice, [self.leftBound, self.rightBound],  [self.innerBound,  self.outerBound], self.tool,  self.toolSide, self.operation, self.direction,
                          self.sideStep,
-                          self.retract, self.traverseHeight, self.rotAxisAdvance,
+                         self.retract,
+                         self.peckingDepth, #self.peckingRetract,
+                         self.traverseHeight, self.rotAxisAdvance,
                          self.radialOffset, self.precision,  self.sliceLevel]
         self.patterns=None
         
@@ -86,7 +86,7 @@ class LatheTask(ItemWithParameters):
         for s in slice:
             self.patterns.append(s)
 
-    def plunge(self, contour, external=True):
+    def plunge(self, contour):
         offset_path = []
         dir = 1
         start_x = self.leftBound.getValue()
@@ -132,56 +132,102 @@ class LatheTask(ItemWithParameters):
         offset_path.append(GPoint(position=(start_x, start, depth), rapid=True))
         return offset_path
 
-    def turn(self, contour, external=True):
+    def internal_plunge(self, contour):
+        offset_path = []
+        dir = 1
+        start_x = self.leftBound.getValue()
+        retract = self.retract.getValue()
+        if self.direction.getValue() == "right to left":
+            start_x = self.rightBound.getValue()
+            dir = -1
+        x=start_x
+        depth = self.sliceLevel.getValue()
+        start = -self.traverseHeight.getValue()
+        outerBound = -self.outerBound.getValue()
+
+        while (dir==-1 and x>self.leftBound.getValue()) or (dir==1 and x<self.rightBound.getValue()):
+            touchPoint = contour.intersectWithLine([x, start], [x, outerBound])
+
+            offset_path.append(GPoint(position=(x, start, depth), rapid = True))
+            if len(touchPoint) > 0:
+                offset_path.append(GPoint(position=(x, max(touchPoint[0][1], outerBound), depth), rapid = False))
+            else:
+                offset_path.append(GPoint(position=(x, outerBound, depth), rapid = False))
+
+            # retract and follow contour
+            # assemble all points between touchpoint and retract point
+            x_coords = [x, x - dir * retract]
+            for subpoly in contour.polygons:
+                for p in subpoly:
+                    if (dir < 0 and p[0] >= x and p[0] <= x + retract) or (dir > 0 and p[0] <= x and p[0] >= x - retract):
+                        x_coords.append(p[0])
+                        x_coords.append(p[0] + 0.00000001)
+                        x_coords.append(p[0] - 0.00000001)
+
+            x_coords.sort(reverse = (dir>0) )  # sorting order depends on feed direction
+
+            for xfollow in x_coords:
+                touchPointFollow = contour.intersectWithLine([xfollow, start], [xfollow, outerBound])
+                if len(touchPointFollow) > 0:
+                    offset_path.append(GPoint(position=(touchPointFollow[0][0], max(touchPointFollow[0][1], outerBound), depth), rapid=False))
+                else:
+                    offset_path.append(GPoint(position=(xfollow, outerBound, depth), rapid=False))
+
+            offset_path.append(GPoint(position=(x - dir*retract, start, depth), rapid = True))
+            x= x+dir*self.sideStep.getValue()
+        offset_path.append(GPoint(position=(start_x, start, depth), rapid=True))
+        return offset_path
+
+
+    def turn(self, contour,  x_start, x_end, external=True ):
         offset_path = []
         depth = self.sliceLevel.getValue()
         y = -self.outerBound.getValue()
-        start = self.rightBound.getValue()
+
         retract = self.retract.getValue()
         sidestep = self.sideStep.getValue()
+
+        peckDepth = self.peckingDepth.getValue()
+
         if not external:
             retract=-retract
             sidestep=-sidestep
             y = -self.innerBound.getValue()
         while (external and y<-self.innerBound.getValue()) or (not external and y>-self.outerBound.getValue()):
-            touchPoint = contour.intersectWithLine([start, y], [self.leftBound.getValue(), y])
+            touchPoint = contour.intersectWithLine([self.rightBound.getValue(), y], [self.leftBound.getValue(), y])
 
             if len(touchPoint)>0:
-                offset_path.append(GPoint(position=(start, y, depth), rapid = True))
-                offset_path.append(GPoint(position=(touchPoint[0][0],y, depth), rapid = False))
+                if touchPoint[0][0]<x_start:
+                    offset_path.append(GPoint(position=(x_start, y, depth), rapid = True))
+                    offset_path.append(GPoint(position=(max(touchPoint[0][0], x_end),y, depth), rapid = False))
 
-                # assemble all points between touchpoint and retract point
-                y_coords = [y, y-retract]
-                for subpoly in contour.polygons:
-                    for p in subpoly:
-                        if (external and p[1] <= y and p[1] >= y-retract) or\
-                            (not external and p[1] >= y and p[1] <= y-retract):
-                            y_coords.append(p[1])
-                            y_coords.append(p[1] + 0.00000001)
-                            y_coords.append(p[1] - 0.00000001)
-                if external:
-                    y_coords.sort(reverse=True)
-                else:
-                    y_coords.sort()
-                for yfollow in y_coords:
-                    touchPointFollow = []
-                    touchPointFollow = contour.intersectWithLine([start, yfollow], [self.leftBound.getValue(), yfollow])
-                    if len(touchPointFollow) > 0:
-                        offset_path.append(GPoint(position=(touchPointFollow[0][0], touchPointFollow[0][1], depth), rapid=False))
+                    # assemble all points between touchpoint and retract point
+                    y_coords = [y, y-retract]
+                    for subpoly in contour.polygons:
+                        for p in subpoly:
+                            if (external and p[1] <= y and p[1] >= y-retract) or\
+                                (not external and p[1] >= y and p[1] <= y-retract):
+                                y_coords.append(p[1])
+                                y_coords.append(p[1] + 0.00000001)
+                                y_coords.append(p[1] - 0.00000001)
+                    if external:
+                        y_coords.sort(reverse=True)
                     else:
-                        offset_path.append(GPoint(position=(self.leftBound.getValue(), yfollow, depth), rapid=False))
+                        y_coords.sort()
+                    for yfollow in y_coords:
+                        touchPointFollow = []
+                        touchPointFollow = contour.intersectWithLine([x_start, yfollow], [x_end, yfollow])
+                        if len(touchPointFollow) > 0:
+                            offset_path.append(GPoint(position=(max(touchPointFollow[0][0], x_end), touchPointFollow[0][1], depth), rapid=False))
+                        else:
+                            offset_path.append(GPoint(position=(x_end, yfollow, depth), rapid=False))
 
-                #if len(touchPoint2)>0:
-                #    offset_path.append(GPoint(position=(touchPoint2[0][0],y-retract, depth), rapid = False))
-                #else:
-                #offset_path.append(GPoint(position=(touchPoint[0][0], y-retract, depth), rapid=False))
-
-                offset_path.append(GPoint(position=(start, y-retract, depth), rapid = True))
+                    offset_path.append(GPoint(position=(x_start, y-retract, depth), rapid = True))
             else:
-                offset_path.append(GPoint(position=(start, y, depth), rapid=True))
-                offset_path.append(GPoint(position=(self.leftBound.getValue(), y, depth), rapid=False))
-                offset_path.append(GPoint(position=(self.leftBound.getValue(), y-retract, depth), rapid=False))
-                offset_path.append(GPoint(position=(start, y-retract, depth), rapid=True))
+                offset_path.append(GPoint(position=(x_start, y, depth), rapid=True))
+                offset_path.append(GPoint(position=(x_end, y, depth), rapid=False))
+                offset_path.append(GPoint(position=(x_end, y-retract, depth), rapid=False))
+                offset_path.append(GPoint(position=(x_start, y-retract, depth), rapid=True))
             y+=sidestep
         return offset_path
 
@@ -311,17 +357,14 @@ class LatheTask(ItemWithParameters):
 
         patterns = self.patterns
 
-        tool_poly = []
-        if self.toolSide.getValue()=="external":
-            tool_poly = [[0, 0], [-self.toolwidth.getValue(), 0], [-self.toolwidth.getValue(), 6], [0, 6]]
-        if self.toolSide.getValue()=="internal":
-            tool_poly = [[0, 0], [-self.toolwidth.getValue(), 0], [-self.toolwidth.getValue(), -6], [0, -6]]
-
         tool_poly = self.tool.getValue().toolPoly(self.toolSide.getValue())
-        if self.toolSide.getValue() == "external": # mirror tool on y axis for external (as we're using the inverted axis to model a lathe)
-            for p in tool_poly:
-                p[0] = -p[0]
-                p[1] = -p[1]
+
+        #invert tool poly, as it's used in a convolution with the outline
+        for p in tool_poly:
+            p[0] = -p[0]
+            p[1] = -p[1]
+            #if self.toolSide.getValue() == "external":  # mirror tool on y axis for external (as we're using the inverted axis to model a lathe)
+            #
 
         print(tool_poly)
 
@@ -333,10 +376,41 @@ class LatheTask(ItemWithParameters):
 
         method = self.operation.getValue()
         offset_path=[]
+
+        x_start = self.rightBound.getValue()
+        x_end = self.leftBound.getValue()
+
         if method == "plunge":
-            offset_path = self.plunge(contour)
+            if self.toolSide.getValue()=="external":
+                offset_path = self.plunge(contour)
+            else:
+                offset_path = self.internal_plunge(contour)
         elif method == "turn":
-            offset_path = self.turn(contour,self.toolSide.getValue()=="external")
+            x_starts = []
+            x_ends = []
+            if self.peckingDepth.getValue() > 0:
+                peck = x_start
+                start = x_start
+                while peck>x_end:
+                    peck -= self.peckingDepth.getValue()
+                    if peck<x_end:
+                        peck = x_end
+                    x_starts.append(start)
+                    x_ends.append(peck)
+                    start =  peck
+            else:
+                x_starts = [x_start]
+                x_ends = [x_end]
+
+            offset_path = []
+            for start, peck in zip(x_starts, x_ends):
+                offset_path += self.turn(contour, x_start = start, x_end = peck, external = self.toolSide.getValue()=="external" )
+                # append full retract to start depth
+                last = offset_path[-1].position
+                offset_path.append(GPoint(position=(x_start, last[1], last[2]), rapid=True))
+                # add return to initial start position of first peck
+                first = offset_path[0].position
+                offset_path.append(GPoint(position=(x_start, first[1], first[2]), rapid=True))
         elif method == "follow":
             offset_path = self.follow2(contour, self.toolSide.getValue()=="external")
 

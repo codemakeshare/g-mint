@@ -17,7 +17,7 @@ class Tool_lathe_insert(ItemWithParameters):
         self.length = NumericalParameter(parent=self, name="length",  value=length,  min=0.0,  step=0.1, callback  = self.previewTool)
         self.width = NumericalParameter(parent=self, name="width",  value=width,  min=0.0,  step=0.1, callback  = self.previewTool)
         self.lateral_offset = NumericalParameter(parent=self, name="lateral offset",  value=0.0,   step=0.1, callback  = self.previewTool)
-        self.rotation = NumericalParameter(parent=self, name="rotation",  value=0,  min=-45, max = 45,  step=0.1, callback  = self.previewTool)
+        self.rotation = NumericalParameter(parent=self, name="rotation",  value=0,  min=-180, max = 180,  step=0.1, callback  = self.previewTool)
         self.includedAngle = NumericalParameter(parent=self, name="included angle",  value=angle,  min=0.0,  max = 90, step=1.0, callback  = self.previewTool)
         self.cornerRadius = NumericalParameter(parent=self, name="corner radius",  value=corner_radius,  min=0.0, step=0.1, callback  = self.previewTool)
 
