@@ -16,7 +16,8 @@ class Tool_lathe_insert(ItemWithParameters):
         self.shape = ChoiceParameter(parent=self,  name="Cutter shape",  choices=['prismatic',  'round'],  value=shape, callback  = self.previewTool)
         self.length = NumericalParameter(parent=self, name="length",  value=length,  min=0.0,  step=0.1, callback  = self.previewTool)
         self.width = NumericalParameter(parent=self, name="width",  value=width,  min=0.0,  step=0.1, callback  = self.previewTool)
-        self.rotation = NumericalParameter(parent=self, name="rotation",  value=0,  min=-45, max = 45,  step=0.1, callback  = self.previewTool)
+        self.lateral_offset = NumericalParameter(parent=self, name="lateral offset",  value=0.0,   step=0.1, callback  = self.previewTool)
+        self.rotation = NumericalParameter(parent=self, name="rotation",  value=0,  min=-180, max = 180,  step=1, callback  = self.previewTool)
         self.includedAngle = NumericalParameter(parent=self, name="included angle",  value=angle,  min=0.0,  max = 90, step=1.0, callback  = self.previewTool)
         self.cornerRadius = NumericalParameter(parent=self, name="corner radius",  value=corner_radius,  min=0.0, step=0.1, callback  = self.previewTool)
 
@@ -32,7 +33,7 @@ class Tool_lathe_insert(ItemWithParameters):
         self.cuttingForce =NumericalParameter(parent=self,  name='cutting force',  value=0,  min=0,  max=20000,  step=1,  editable=False)
         self.spindleLoad =NumericalParameter(parent=self,  name='spindle load (Watt)',  value=0,  min=0,  max=20000,  step=1,  editable=False)
 
-        self.parameters=[self.name,  self.shape, self.length, self.width, self.rotation, self.includedAngle, self.cornerRadius,
+        self.parameters=[self.name,  self.shape, self.length, self.width, self.rotation, self.includedAngle, self.cornerRadius, self.lateral_offset,
                          self.chipload,  self.engagement,  self.maxDOC,
                          self.surfacespeed,
                          self.spindleRPM,
@@ -59,8 +60,12 @@ class Tool_lathe_insert(ItemWithParameters):
         l = self.length.getValue()
         v1 = [math.sin(la*math.pi/180.0) * l, -math.cos(la*math.pi/180.0) * l]
         v2 = [math.sin(ia*math.pi/180.0) * w, -math.cos(ia*math.pi/180.0) * w]
+        lo = self.lateral_offset.getValue()
 
         tool_poly = [[0, 0], v1, [v1[0]+v2[0], v1[1]+v2[1]], v2]
+
+        # shift by lateral offset
+        tool_poly = [[p[0]+lo, p[1]] for p in tool_poly]
 
         cr = min([self.cornerRadius.getValue(), w/2.0-0.01, l/2.0-0.01])
         if cr>0:
@@ -69,7 +74,21 @@ class Tool_lathe_insert(ItemWithParameters):
             roundPoly = roundPoly.offset(radius=-cr)
             tool_poly = roundPoly.polygons[0]
             bb = roundPoly.getBoundingBox()
-            roundPoly.translate([-bb[0][0], -bb[1][1], 0])
+
+            shift_x = 0
+            shift_y = 0
+
+            if max([p[0] for p in bb]) < 0: # whole insert on right side
+                shift_x = -max([p[0] for p in bb])
+            if min([p[0] for p in bb]) > 0: # whole insert on left side
+                shift_x = -min([p[0] for p in bb])
+
+            if max([p[1] for p in bb]) < 0: # whole insert on external side
+                shift_y = -max([p[1] for p in bb])
+            if min([p[1] for p in bb]) > 0: # whole insert on internal side
+                shift_y = -min([p[1] for p in bb])
+
+            roundPoly.translate([shift_x, shift_y, 0])
 
         return tool_poly
 

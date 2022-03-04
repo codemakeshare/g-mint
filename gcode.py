@@ -18,13 +18,13 @@ class GCommand:
         self.line_number=line_number
         self.interpolated=False
 
-    def to_output(self):
+    def to_output(self, current_pos = None, current_rotation = None):
         return "%s" % (self.command)
 
     def parse_line(self, input_line):
         self.command = line
 
-    def interpolate_to_points(self, current_pos):
+    def interpolate_to_points(self, current_pos, current_rotation = None):
         return []
 
 
@@ -51,19 +51,39 @@ class GPoint(GCommand):
             self.command = "%sF%f" % (self.command, self.feedrate)
         return self.command
 
-    def to_output(self):
+    def to_output(self, current_pos = None, current_rotation = None):
         am = self.axis_mapping
         ram = self.rot_axis_mapping
+        self.command = ""
         if not self.control_point:
-            self.command = "%s%f %s%f %s%f " % (am[0], self.position[0]*self.axis_scaling[0], am[1], self.position[1]*self.axis_scaling[1], am[2], self.position[2]*self.axis_scaling[2])
+            for i in range(0, len(self.position)):
+                if current_pos is None or self.position[i]*self.axis_scaling[i] != current_pos[i]:
+                    self.command += "%s%f " % (am[i], self.position[i]*self.axis_scaling[i])
             if self.rotation is not None:
-                self.command += "%s%f %s%f %s%f " % (ram[0], self.rotation[0], ram[1], self.rotation[1], ram[2], self.rotation[2])
+                for i in range(0, len(self.rotation)):
+                    if current_rotation is None or self.rotation[i] != current_rotation[i]:
+                        self.command += "%s%f " % (ram[i], self.rotation[i])
         # if self.feedrate!=None:
         #    self.command="%sF%f"%(self.command,  self.feedrate)
         return self.command
 
-    def interpolate_to_points(self, current_pos):
-        return[(GPoint(position=self.position, rotation = self.rotation, feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number))]
+    def interpolate_to_points(self, current_pos, current_rotation=None):
+        #interpolate 4th axis moves (for visualisation)
+        path = []
+        print("ITP", current_pos, current_rotation)
+        if current_rotation is not None and self.rotation is not None and current_rotation != self.rotation:
+            steps = int(dist(current_rotation,  self.rotation) / 5.0)
+            if steps>1:
+                rot_stepsizes = [float(b - a)/float(steps) for (a,b) in zip(current_rotation, self.rotation)]
+                pos_stepsizes = [float(b - a) / float(steps) for (a, b) in zip(current_pos, self.position)]
+                for i in range(0, steps):
+                    new_rotation = [ current_rotation[j] + i * rot_stepsizes[j] for j in range(0, len(current_rotation))]
+                    new_pos = [ current_pos[j] + i * pos_stepsizes[j] for j in range(0, len(current_pos))]
+                    path.append((GPoint(position=new_pos, rotation=new_rotation, feedrate=self.feedrate,
+                                        rapid=self.rapid, interpolated=True, line_number=self.line_number)))
+
+        path.append((GPoint(position=self.position, rotation = self.rotation, feedrate=self.feedrate, rapid=self.rapid, line_number=self.line_number)))
+        return path
 
 class GArc(GPoint):
     def __init__(self, ij=None, arcdir=None, control_point=False, **kwargs):
@@ -83,7 +103,7 @@ class GArc(GPoint):
             self.command = "%sF%f" % (self.command, self.feedrate)
         return self.command
 
-    def to_output(self, to_points=False):
+    def to_output(self, current_pos = None, current_rotation = None, to_points=False):
         am = self.axis_mapping
         if not self.control_point:
             self.command = "%s%f %s%f %s%f I%f J%f " % (am[0], self.position[0]*self.axis_scaling[0], am[1], self.position[1]*self.axis_scaling[1], am[2], self.position[2]*self.axis_scaling[2], self.ij[0], self.ij[1])
@@ -91,7 +111,7 @@ class GArc(GPoint):
         #    self.command="%sF%f"%(self.command,  self.feedrate)
         return self.command
 
-    def interpolate_to_points(self, current_pos):
+    def interpolate_to_points(self, current_pos, current_rotation = None):
         arc_start = current_pos
         path=[]
         #print(arc_start, self.ij, self.position)
@@ -107,6 +127,8 @@ class GArc(GPoint):
         if abs(radius-radius2)>0.01:
             print("radius mismatch:", radius, radius2)
 
+
+        #interpolate arcs
         if int(self.arcdir) == 3:
             #print(int(self.arcdir))
             while end_angle > start_angle:
@@ -170,8 +192,12 @@ class GCode:
 
     def get_draw_path(self, start = 0, end=-1, start_rotation = [0,0,0], interpolate_arcs = True):
         draw_path=[]
+        # current last position including interpolated points
         current_pos = [0,0,0]
-        current_rotation = None
+        current_rotation = [0,0,0]
+        #last non-interpolated actual position
+        last_position = [0,0,0]
+        last_rotation = [0,0,0]
         line=1
         for p in self.path[start:end]:
             if p.line_number==0:
@@ -180,7 +206,7 @@ class GCode:
             try:
                 point_list=[GPoint(position=p.position, feedrate=p.feedrate, rapid=p.rapid, line_number=p.line_number)]
                 if interpolate_arcs:
-                    point_list = p.interpolate_to_points(current_pos)
+                    point_list = p.interpolate_to_points(last_position, last_rotation)
                 for ip in point_list:
                     if ip.position is None:
                         ip.position = current_pos
@@ -197,8 +223,13 @@ class GCode:
                     draw_path.append(ip)
             except:
                 traceback.print_exc()
+            last_position = p.position
+            if p.rotation is not None:
+                last_rotation = p.rotation
             if (len(draw_path)>1):
                 current_pos = draw_path[-1].position
+                if draw_path[-1].rotation is not None:
+                    current_rotation = draw_path[-1].rotation
         return draw_path
 
     def get_end_points(self, start = 0, end=-1):
@@ -282,6 +313,8 @@ class GCode:
         rapid = None
 
         current_feedrate = self.default_feedrate
+        current_pos = None
+        current_rotation = [0,0,0]
         current_gmode = "G1"
         for p in complete_path:
             if isinstance(p, GPoint):
@@ -308,7 +341,13 @@ class GCode:
                         current_gmode = p.gmode
                         output += current_gmode+" "
 
-            output += "" + p.to_output()
+            output += "" + p.to_output(current_pos = current_pos, current_rotation = current_rotation)
+
+            if p.position is not None:
+                current_pos = p.position
+            if p.rotation is not None:
+                current_rotation = p.rotation
+
             if p.feedrate is not None and (p.control_point or p.rapid == False and p.feedrate != current_feedrate):
                 current_feedrate = p.feedrate
                 if not p.control_point:

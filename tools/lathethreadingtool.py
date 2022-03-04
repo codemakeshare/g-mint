@@ -16,6 +16,8 @@ class LatheThreadingTool(ItemWithParameters):
         self.patterns=[]
         self.path=None
 
+
+
         # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
         self.axis_mapping=["Z", "X", "Y"]
         # scaling factors for output. We use factor -2.0 for x (diameter instead of radius), inverted from negative Y coordinate in viz
@@ -33,6 +35,15 @@ class LatheThreadingTool(ItemWithParameters):
                                     ("M20 x 2.5", [20, 17.5, 2.5, 0]),
                                     ("NPT 1/8",[0.38*25.4, 0.339*25.4,  1.0/27.0*25.4,  1.7899]),
                                     ("NPT 1/4", [13.6, 11.113, 1.0 / 18.0 * 25.4, 1.7899])])
+
+        self.output_format = {
+            "lathe (ZX)": {"mapping": ["Z", "X", "Y"], "scaling": [1.0, -2.0, 0.0]},
+            "mill  (XZ)": {"mapping": ["X", "Z", "Y"], "scaling": [1.0, -1.0, 0.0]}
+        }
+
+        self.outputFormatChoice = ChoiceParameter(parent=self, name="Output format",
+                                                  choices=list(self.output_format.keys()),
+                                                  value=list(self.output_format.keys())[0])
 
         self.presetParameter = ChoiceParameter(parent=self,  name="Presets",  choices=self.presets.keys(),  value = "M10 x 1.5",  callback = self.loadPreset)
 
@@ -56,7 +67,7 @@ class LatheThreadingTool(ItemWithParameters):
         self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1, callback = self.generatePath)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
 
-        self.parameters=[self.presetParameter, [self.leftBound, self.rightBound],  self.toolSide, self.direction,  self.retract,
+        self.parameters=[self.outputFormatChoice, self.presetParameter, [self.leftBound, self.rightBound],  self.toolSide, self.direction,  self.retract,
                          self.pitch, self.start_diameter, self.end_diameter, self.coneAngle, self.stepover]
         self.patterns=None
         self.loadPreset(self.presetParameter)
@@ -87,6 +98,7 @@ class LatheThreadingTool(ItemWithParameters):
 
         start_x = self.rightBound.getValue()
         end_x = self.leftBound.getValue()
+        pitch = self.pitch.getValue()
         if self.direction.getValue() == "left to right":
             start_x = self.leftBound.getValue()
             end_x = self.rightBound.getValue()
@@ -95,22 +107,23 @@ class LatheThreadingTool(ItemWithParameters):
         cone_offset = abs(start_x-end_x)*sin(cone_angle)
         finish_passes=2
         # switch to feed per rev mode
-        offset_path.append(GCommand("G95"))
+        #offset_path.append(GCommand("G95"))
+        total_rotation = -(end_x-start_x) / pitch * 360
         while finish_passes>0:
             y+=stepover
             if (y > -self.end_diameter.getValue()/2.0):
                 y=-self.end_diameter.getValue()/2.0
                 finish_passes -= 1 # count down finish passes
 
-            offset_path.append(GPoint(position=(start_x, retract_y, 0), rapid = True))
-            offset_path.append(GPoint(position=(start_x, y+cone_offset, 0), rapid = True))
-            offset_path.append(GCommand("G4 P1"))
-            offset_path.append(GPoint(position=(end_x, y, 0), rapid = False, feedrate=self.pitch.getValue()))
-            offset_path.append(GPoint(position=(end_x, retract_y, 0), rapid = True))
-            offset_path.append(GPoint(position=(start_x, retract_y, 0), rapid = True))
+            offset_path.append(GPoint(position=[start_x, retract_y, 0], rotation=[0,0,0], rapid = True))
+            offset_path.append(GPoint(position=[start_x, y+cone_offset, 0], rotation=[0,0,0], rapid = True))
+            #offset_path.append(GCommand("G4 P1"))
+            offset_path.append(GPoint(position=[end_x, y, 0], rotation=[total_rotation,0,0], rapid = False, feedrate=self.pitch.getValue()))
+            offset_path.append(GPoint(position=[end_x, retract_y, 0], rotation=[total_rotation,0,0], rapid = True))
+            offset_path.append(GPoint(position=[start_x, retract_y, 0], rotation = [0,0,0], rapid = True))
 
         # switch back to normal feedrate mode
-        offset_path.append(GCommand("G94"))
+        #offset_path.append(GCommand("G94"))
         return offset_path
 
     def internal_thread(self):
@@ -154,6 +167,17 @@ class LatheThreadingTool(ItemWithParameters):
         #self.path = GCode([p for segment in offset_path for p in segment])
         self.path = GCode(offset_path)
         self.path.default_feedrate = 50
+
+        format = self.outputFormatChoice.getValue()
+        # remap lathe axis for output. For Visualisation, we use x as long axis and y as cross axis. Output uses Z as long axis, x as cross.
+        self.axis_mapping = self.output_format[format]["mapping"]
+        # scaling factors for output. We use factor -2.0 for x (diameter instead of radius), inverted from negative Y coordinate in viz
+        self.axis_scaling = self.output_format[format]["scaling"]
+
+        self.path.applyAxisMapping(self.axis_mapping)
+        self.path.applyAxisScaling(self.axis_scaling)
+        self.path.steppingAxis = 1
+
         self.path.applyAxisMapping(self.axis_mapping)
         self.path.applyAxisScaling(self.axis_scaling)
         if self.viewUpdater!=None:

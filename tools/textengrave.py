@@ -14,7 +14,7 @@ def tuple_to_imag(t):
 class TextEngraveTask(SliceTask):
     def __init__(self,  model=None,  tools=[], viewUpdater=None, **kwargs):
         SliceTask.__init__(self,  **kwargs)
-        self.model=model.object
+        #self.model=model.object
         self.patterns=[]
         self.path=None
 
@@ -27,21 +27,21 @@ class TextEngraveTask(SliceTask):
         self.toolSide = ChoiceParameter(parent=self, name="Tool side", choices=["external", "internal"],
                                         value="internal")
 
-        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model.maxv[2]+1,  min=self.model.minv[2]-100,  max=self.model.maxv[2]+100,  step=1.0)
+        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=0.1,  min=0,  max=100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
         self.viewUpdater=viewUpdater
 
-        self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=self.model.minv[0], step=0.01)
-        self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=self.model.maxv[0], step=0.01)
+        self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=0, step=0.01)
+        self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=0, step=0.01)
         self.innerBound=NumericalParameter(parent=self, name="inner boundary",  value=0, step=0.01)
-        self.outerBound=NumericalParameter(parent=self, name="outer boundary",  value=self.model.maxv[1], step=0.01)
+        self.outerBound=NumericalParameter(parent=self, name="outer boundary",  value=0, step=0.01)
 
         self.sliceIter = NumericalParameter(parent=self, name="iterations", value=1, step=1, enforceRange=False,
                                             enforceStep=True)
 
 
 
-        self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.01)
+        self.sideStep=NumericalParameter(parent=self, name="stepover",  value=0.0,  min=0.0001,  step=0.01)
 
         self.radialOffset = NumericalParameter(parent=self, name='radial offset', value=0.0, min=-100, max=100, step=0.01)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
