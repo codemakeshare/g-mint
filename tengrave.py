@@ -37,11 +37,13 @@ class SimpleEngrave(TextEngraveTask):
                          viewUpdater=self.updateOutputView, tool=self.laser_tool,
                          source=None)
 
+        self.output_pathtool.feedrate.updateValue(900)
         self.textInput.callback = self.create_path
         self.create = ActionParameter(parent = self, name = "create path", callback = self.create_path)
         self.parameters = [[self.textInput, self.create],
                            [self.font, self.fontsize],
-                           self.output_pathtool.laser_mode,
+                           [self.output_pathtool.laser_mode,
+                           self.output_pathtool.feedrate],
                            self.tool,
                            self.traverseHeight,
                            self.radialOffset,
