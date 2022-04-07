@@ -11,12 +11,12 @@ import sys, os, os.path
 from solids import *
 from objectviewer import *
 
-class ModelDialog(QtGui.QWidget):
+class ModelDialog(QtWidgets.QWidget):
     def __init__(self, viewer):
-        QtGui.QWidget.__init__(self)
-        mlayout = QtGui.QGridLayout()
+        QtWidgets.QWidget.__init__(self)
+        mlayout = QtWidgets.QGridLayout()
         self.setLayout(mlayout)
-        loadbutton = QtGui.QPushButton("Load")
+        loadbutton = QtWidgets.QPushButton("Load")
         loadbutton.clicked.connect(self.showDialog)
         mlayout.addWidget(loadbutton, 0, 0)
         self.modelTool = ModelTool(name="Model", object=None, viewUpdater=self.updateView)
@@ -38,7 +38,7 @@ class ModelDialog(QtGui.QWidget):
             self.viewer.showFacets(self.modelTool.object)
 
     def showDialog(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '', "STL files (*.stl)")[0]
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', "STL files (*.stl)")[0]
         self.loadObject(filename)
 
     def loadObject(self, filename):

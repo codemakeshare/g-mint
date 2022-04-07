@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtCore, QtGui, QtOpenGL
+from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.opengl as gl
 
 from OpenGL.GL import *

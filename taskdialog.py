@@ -15,13 +15,13 @@ from guifw.gui_elements import *
 
 import json
 
-class TaskDialog(QtGui.QWidget):
+class TaskDialog(QtWidgets.QWidget):
     def __init__(self, modelmanager, tools, path_output):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.path_output = path_output
         self.modelmanager = modelmanager
         self.tools = tools
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         self.setLayout(self.layout)
         self.availableTasks = OrderedDict([("Slice", SliceTask),
                                            ("Pattern", PatternTask),
@@ -37,13 +37,13 @@ class TaskDialog(QtGui.QWidget):
         self.tasktab = ListWidget(itemlist=[], title="Milling tasks", itemclass=self.availableTasks, name="Task",
                                   tools=tools, model=modelmanager, on_select_cb=self.display_pattern, viewUpdater=self.modelmanager.viewer.showPath)
         self.layout.addWidget(self.tasktab, 0, 0, 1, 2)
-        create_pattern_btn = QtGui.QPushButton("generate pattern")
-        start_one_btn = QtGui.QPushButton("start selected")
-        start_all_btn = QtGui.QPushButton("start all")
+        create_pattern_btn = QtWidgets.QPushButton("generate pattern")
+        start_one_btn = QtWidgets.QPushButton("start selected")
+        start_all_btn = QtWidgets.QPushButton("start all")
 
-        #save_btn = QtGui.QPushButton("save")
+        #save_btn = QtWidgets.QPushButton("save")
         #save_btn.clicked.connect(self.saveTasks)
-        #load_btn = QtGui.QPushButton("load")
+        #load_btn = QtWidgets.QPushButton("load")
         #load_btn.clicked.connect(self.loadTasks)
 
         self.layout.addWidget(create_pattern_btn, 1, 1)

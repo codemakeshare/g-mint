@@ -344,9 +344,9 @@ class GrblInterface():
         print("send feed override")
 
 
-class RTButton(QtGui.QPushButton):
+class RTButton(QtWidgets.QPushButton):
     def __init__(self, name="", command="", machine_interface=None, size=50):
-        QtGui.QPushButton.__init__(self, name)
+        QtWidgets.QPushButton.__init__(self, name)
         self.machine_interface = machine_interface
         self.setFixedHeight(size)
         self.setFixedWidth(size)
@@ -388,8 +388,8 @@ class AxisDisplayWidget(LabeledTextField):
         self.setFont(self.font)
         self.label.setFixedHeight(30)
         self.text.setFixedHeight(height)
-        self.zero_button = QtGui.QPushButton("0")
-        self.half_button = QtGui.QPushButton("1/2")
+        self.zero_button = QtWidgets.QPushButton("0")
+        self.half_button = QtWidgets.QPushButton("1/2")
         self.zero_button.pressed.connect(self.zeroButtonPushed)
         self.half_button.pressed.connect(self.halfButtonPushed)
         self.zero_button.setFixedWidth(45)
@@ -412,13 +412,13 @@ class AxisDisplayWidget(LabeledTextField):
         self.textEditedHandler()
 
 
-class AxesWidget(QtGui.QWidget):
+class AxesWidget(QtWidgets.QWidget):
     def __init__(self, machine_interface=None,
                  display_axes = ["X", "Y", "Z"],
                  machine_axes=["X", "Y", "Z", "A", "B", "C"],
                  displayHeight=40):
-        QtGui.QWidget.__init__(self)
-        self.statuslayout = QtGui.QGridLayout()
+        QtWidgets.QWidget.__init__(self)
+        self.statuslayout = QtWidgets.QGridLayout()
         self.machine_interface = machine_interface
         self.setLayout(self.statuslayout)
 
@@ -426,7 +426,7 @@ class AxesWidget(QtGui.QWidget):
         self.statuslayout.setContentsMargins(0,0,0,0)
 
         self.font = QtGui.QFont("Helvetica [Cronyx]", 16);
-        self.status = QtGui.QLabel("---")
+        self.status = QtWidgets.QLabel("---")
         self.status.setFixedWidth(150)
         self.status.setFixedHeight(25)
         self.status.setFont(self.font)
@@ -448,9 +448,9 @@ class AxesWidget(QtGui.QWidget):
             i in range(0, len(self.wcs_names))]
         self.active_wcs = 1
 
-        self.wcs_widget = QtGui.QWidget()
+        self.wcs_widget = QtWidgets.QWidget()
 
-        wcs_layout = QtGui.QHBoxLayout()
+        wcs_layout = QtWidgets.QHBoxLayout()
         wcs_layout.setSpacing(0)
         wcs_layout.setContentsMargins(0,0,0,0)
         self.wcs_widget.setLayout(wcs_layout)
@@ -464,7 +464,7 @@ class AxesWidget(QtGui.QWidget):
             self.statuslayout.addWidget(self.position_fields[i], i + 2, 0)
         self.statuslayout.addWidget(self.wcs_widget, self.number_of_axes + 2, 0)
 
-        self.statuslayout.addWidget(QtGui.QLabel(""), 0, 4)
+        self.statuslayout.addWidget(QtWidgets.QLabel(""), 0, 4)
 
         self.machine_interface.status_callback = self.updateStatus
 
@@ -494,7 +494,7 @@ class AxesWidget(QtGui.QWidget):
                 self.position_fields[di].updateValue(machine_interface.axes[i])
 
 
-class CursorWidget(QtGui.QWidget):
+class CursorWidget(QtWidgets.QWidget):
     def __init__(self,
                  machine_interface=None,
                  buttonsize=50,
@@ -505,10 +505,10 @@ class CursorWidget(QtGui.QWidget):
                          ["z-", "zm", QtCore.Qt.Key_PageDown, 1, 3],
                          ["z+", "zp", QtCore.Qt.Key_PageUp,   0, 3]
                   ]):
-        QtGui.QWidget.__init__(self)
-        cursorlayout = QtGui.QGridLayout()
-        cursorWidget = QtGui.QWidget()
-        layout = QtGui.QVBoxLayout()
+        QtWidgets.QWidget.__init__(self)
+        cursorlayout = QtWidgets.QGridLayout()
+        cursorWidget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout()
 
         layout.setSpacing(0)
         layout.setContentsMargins(0,0,0,0)
@@ -527,7 +527,7 @@ class CursorWidget(QtGui.QWidget):
             self.axis_buttons.append(RTButton(a[0], command=a[1], machine_interface=machine_interface, size=buttonsize))
             cursorlayout.addWidget(self.axis_buttons[-1], a[3], a[4])
 
-        self.rapidbutton = QtGui.QPushButton("Rapid")
+        self.rapidbutton = QtWidgets.QPushButton("Rapid")
         self.rapidbutton.setFixedHeight(buttonsize)
         self.rapidbutton.setFixedWidth(buttonsize)
         self.rapidbutton.clicked.connect(self.rapidButtonClicked)
@@ -606,42 +606,42 @@ class CursorWidget(QtGui.QWidget):
 
 
 
-class GCodeWidget(QtGui.QWidget):
+class GCodeWidget(QtWidgets.QWidget):
     def __init__(self, machine_interface=None, path_dialog=None, editor=None):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.path_dialog = path_dialog
         self.machine_interface = machine_interface
 
         self.current_gcode = []
         self.current_line_number = 0
 
-        buttonlayout = QtGui.QHBoxLayout()
-        self.buttonwidget = QtGui.QWidget()
+        buttonlayout = QtWidgets.QHBoxLayout()
+        self.buttonwidget = QtWidgets.QWidget()
         self.buttonwidget.setLayout(buttonlayout)
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.setSpacing(0)
 
         self.editor=editor
 
         self.setLayout(self.layout)
 
-        self.startButton = QtGui.QPushButton("Start")
+        self.startButton = QtWidgets.QPushButton("Start")
         self.startButton.setToolTip("F5")
         self.startButton.setFixedWidth(60)
         self.startButton.setFixedHeight(30)
         self.startButton.pressed.connect(self.startPushed)
-        self.stopButton = QtGui.QPushButton("Stop")
+        self.stopButton = QtWidgets.QPushButton("Stop")
         self.stopButton.setToolTip("ESC")
         self.stopButton.setFixedWidth(60)
         self.stopButton.setFixedHeight(30)
         self.stopButton.pressed.connect(self.stopPushed)
-        self.pauseButton = QtGui.QPushButton("Hold")
+        self.pauseButton = QtWidgets.QPushButton("Hold")
         self.pauseButton.setToolTip("H")
         self.pauseButton.setFixedWidth(60)
         self.pauseButton.setFixedHeight(30)
         self.pauseButton.clicked.connect(self.pausePushed)
         self.pauseButton.setCheckable(True)
-        self.stepButton = QtGui.QPushButton("Step")
+        self.stepButton = QtWidgets.QPushButton("Step")
         self.stepButton.setFixedWidth(60)
         self.stepButton.setFixedHeight(30)
         self.stepButton.clicked.connect(self.sendGCode)
@@ -666,7 +666,7 @@ class GCodeWidget(QtGui.QWidget):
         self.feedrate_override.setFixedWidth(200)
         self.layout.addWidget(self.feedrate_override)
 
-        self.manual_enter = QtGui.QLineEdit(parent=self)
+        self.manual_enter = QtWidgets.QLineEdit(parent=self)
         self.manual_enter.returnPressed.connect(self.manualGCodeHandler)
         self.layout.addWidget(self.manual_enter)
 
@@ -769,9 +769,9 @@ class GCodeWidget(QtGui.QWidget):
             return True
 
 
-class GrblDialog(QtGui.QWidget):
+class GrblDialog(QtWidgets.QWidget):
     def __init__(self, path_dialog=None, editor=None, layout="vertical", machine="mill", device = None):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.path_dialog = path_dialog
         self.machine_interface = GrblInterface(portname=device)
         self.serialPorts = []
@@ -811,7 +811,7 @@ class GrblDialog(QtGui.QWidget):
             self.machine_interface.jog_scale[0] = 2000 # scale X axis twice as big in lathe mode (diameter mode, to get 45 degree movement)
 
         if layout == "vertical":
-            mlayout = QtGui.QVBoxLayout()
+            mlayout = QtWidgets.QVBoxLayout()
             self.setLayout(mlayout)
             mlayout.setSpacing(0)
             mlayout.setContentsMargins(0, 0, 0, 0)
@@ -831,7 +831,7 @@ class GrblDialog(QtGui.QWidget):
             # mlayout.addWidget(self.connectButton)
 
         if layout == "horizontal":
-            mlayout = QtGui.QHBoxLayout()
+            mlayout = QtWidgets.QHBoxLayout()
             mlayout.setSpacing(0)
             mlayout.setContentsMargins(0, 0, 0, 0)
             self.setLayout(mlayout)
@@ -858,7 +858,7 @@ class GrblDialog(QtGui.QWidget):
 
 if __name__ == '__main__':
     import sys
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     device = "/dev/ttyUSB0"
     if len(sys.argv)>1:
        device = sys.argv[1]

@@ -23,12 +23,12 @@ from taskdialog import *
 from grbldialog import *
 from gcode_editor import *
 
-class CAMGui(QtGui.QSplitter):
+class CAMGui(QtWidgets.QSplitter):
 
     def __init__(self):
-        QtGui.QSplitter.__init__(self)
+        QtWidgets.QSplitter.__init__(self)
 
-        self.tabs=QtGui.QTabWidget()
+        self.tabs=QtWidgets.QTabWidget()
         self.editor = GcodeEditorWidget()
 
         self.objectviewer =ObjectViewer(editor = self.editor)
@@ -62,7 +62,7 @@ class CAMGui(QtGui.QSplitter):
         self.tabs.addTab(self.grbltab,  "Machine")
 
         #self.w=self.tabs
-        self.centerWidget = QtGui.QSplitter(QtCore.Qt.Vertical)
+        self.centerWidget = QtWidgets.QSplitter(QtCore.Qt.Vertical)
 
         self.centerWidget.addWidget(self.objectviewer)
         self.centerWidget.addWidget(self.editor)
@@ -79,7 +79,7 @@ class CAMGui(QtGui.QSplitter):
 
 
 
-app = QtGui.QApplication([])
+app = QtWidgets.QApplication([])
 camgui=CAMGui()
 camgui.show()
 ## Start the Qt event loop

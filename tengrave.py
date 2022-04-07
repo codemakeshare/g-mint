@@ -39,6 +39,9 @@ class SimpleEngrave(TextEngraveTask):
 
         self.output_pathtool.feedrate.updateValue(900)
         self.textInput.callback = self.create_path
+        
+        self.fontsize.updateValue(13)
+        self.radialOffset.updateValue(0.05)
         self.create = ActionParameter(parent = self, name = "create path", callback = self.create_path)
         self.parameters = [[self.textInput, self.create],
                            [self.font, self.fontsize],
@@ -66,15 +69,15 @@ class SimpleEngrave(TextEngraveTask):
 
 
 
-class CAMGui(QtGui.QSplitter):
+class CAMGui(QtWidgets.QSplitter):
 
     def __init__(self):
-        QtGui.QSplitter.__init__(self)
+        QtWidgets.QSplitter.__init__(self)
         self.editor = GcodeEditorWidget()
         self.objectviewer = ObjectViewer(editor=self.editor)
 
         #self.objectviewer = ObjectViewer()
-        self.tabs=QtGui.QTabWidget()
+        self.tabs=QtWidgets.QTabWidget()
         self.modeltool = tools.modeltool.ModelTool(viewUpdater=self.objectviewer.showPath)
 
         self.availablePathTools = OrderedDict([("Load GCode",  PathTool)])
@@ -84,15 +87,15 @@ class CAMGui(QtGui.QSplitter):
         self.engrave_tool = SimpleEngrave(viewUpdater = self.objectviewer.showPath, model = self.modeltool, pathdialog = self.pathtab )
         self.engrave_tab = ToolPropertyWidget(parent = self, tool = self.engrave_tool)
 
-        self.left_widget = QtGui.QSplitter(Qt.Vertical)
-        #self.left_layout = QtGui.QVBoxLayout()
+        self.left_widget = QtWidgets.QSplitter(Qt.Vertical)
+        #self.left_layout = QtWidgets.QVBoxLayout()
 
         self.left_widget.addWidget(self.grbltab)
         self.left_widget.addWidget(self.engrave_tab)
 
         self.addWidget(self.left_widget)
 
-        self.centerWidget = QtGui.QSplitter(Qt.Vertical)
+        self.centerWidget = QtWidgets.QSplitter(Qt.Vertical)
 
         self.centerWidget.addWidget(self.objectviewer)
         self.centerWidget.addWidget(self.editor)
@@ -100,13 +103,13 @@ class CAMGui(QtGui.QSplitter):
 
         self.setWindowTitle('Machine Interface')
         self.updateGeometry()
-        self.resize(1200,  600)
+        self.resize(1600,  1200)
         ## Display the widget as a new window
 
 
 
 
-app = QtGui.QApplication([])
+app = QtWidgets.QApplication([])
 camgui=CAMGui()
 camgui.show()
 

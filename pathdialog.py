@@ -6,12 +6,12 @@ from tools.pathtool import *
 from guifw.gui_elements import *
 from objectviewer import *
 
-class PathDialog(QtGui.QWidget):
+class PathDialog(QtWidgets.QWidget):
     def __init__(self, viewer, tools, availablePathTools = None, editor=None):
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.viewer = viewer
         self.editor = editor
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         self.setLayout(self.layout)
 
         self.availablePathTools = availablePathTools
@@ -26,7 +26,7 @@ class PathDialog(QtGui.QWidget):
                                   on_select_cb=self.display_path, viewUpdater=self.view_updater, tool=tool, name="-")
 
         self.layout.addWidget(self.pathtab, 0, 0, 1, 2)
-        combine_paths_btn = QtGui.QPushButton("combine paths")
+        combine_paths_btn = QtWidgets.QPushButton("combine paths")
 
         self.layout.addWidget(combine_paths_btn, 1, 1)
 

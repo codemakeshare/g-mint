@@ -8,9 +8,9 @@ from solids import *
 
 
 
-class ObjectViewer(QtGui.QWidget):
+class ObjectViewer(QtWidgets.QWidget):
     def __init__(self, parent=None, editor=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         self.busy = False
         ## Create a GL View widget to display data
         self.visual_divider = 1
@@ -19,7 +19,7 @@ class ObjectViewer(QtGui.QWidget):
         self.editor=editor
 
         self.gm = None
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
         self.w = OrthoGLViewWidget()
@@ -32,10 +32,10 @@ class ObjectViewer(QtGui.QWidget):
         self.setWindowTitle('CAM preview')
         self.w.setCameraPosition(distance=200)
 
-        self.stats = QtGui.QLabel(parent=self)
+        self.stats = QtWidgets.QLabel(parent=self)
         self.stats.setMaximumHeight(20)
         self.layout.addWidget(self.stats)
-        self.path_slider = QtGui.QSlider(parent=self)
+        self.path_slider = QtWidgets.QSlider(parent=self)
         self.path_slider.setOrientation(QtCore.Qt.Horizontal)
         self.layout.addWidget(self.path_slider)
         self.path_slider.valueChanged.connect(self.updatePathPlot)
