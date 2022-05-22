@@ -31,6 +31,13 @@ class TextEngraveTask(SliceTask):
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
         self.viewUpdater=viewUpdater
 
+        self.charSpacing = NumericalParameter(parent = self, name = "character spacing", value = 0, min = 0, max = 1000)
+        self.border_height = NumericalParameter(parent = self, name = "border height", value = 0, min = 0, max = 1000)
+        self.border_width = NumericalParameter(parent=self, name="border width", value=0, min=0, max=1000)
+        self.border_radius = NumericalParameter(parent=self, name="border radius", value=0, min=0, max=1000)
+        self.border_depth = NumericalParameter(parent=self, name="border radius", value=0, min=0, max=1000)
+
+
         self.leftBound=NumericalParameter(parent=self, name="left boundary",  value=0, step=0.01)
         self.rightBound=NumericalParameter(parent=self, name="right boundary",  value=0, step=0.01)
         self.innerBound=NumericalParameter(parent=self, name="inner boundary",  value=0, step=0.01)
@@ -47,9 +54,10 @@ class TextEngraveTask(SliceTask):
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
 
-        self.parameters = [self.textInput, self.fontsize, self.font, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.direction, self.toolSide, self.sideStep, self.traverseHeight,
+        self.parameters = [self.textInput, self.fontsize, self.font, self.charSpacing, self.tool, [self.stockMinX, self.stockMinY], [self.stockSizeX, self.stockSizeY], self.direction, self.toolSide, self.sideStep, self.traverseHeight,
                            self.radialOffset,
-                           self.pathRounding, self.precision, self.sliceIter]
+                           self.pathRounding, self.precision, self.sliceIter,
+                           self.border_width, self.border_height, self.border_radius, self.border_depth]
         self.patterns = None
 
 
@@ -115,6 +123,7 @@ class TextEngraveTask(SliceTask):
             paths.append(segPath)
         return paths
 
+
     def generatePattern(self):
 
         scaling = 25.4 / 72.0 / 64.0  # freetype dimensions are in points, 1/72 of an inch. Convert to millimeters...
@@ -135,7 +144,10 @@ class TextEngraveTask(SliceTask):
             print ("kerning ", last_char, c, kerning.x, slot.advance.x)
             last_char = c
 
-            pos[0] += (kerning.x * scaling)
+            if self.charSpacing.getValue() == 0 :
+                pos[0] += (kerning.x * scaling)
+            else:
+                pos[0] += self.charSpacing.getValue()
             paths=self.generateCharacter(character = c, pos = pos, scaling = scaling)
             pos[0]+=slot.advance.x * scaling
 
