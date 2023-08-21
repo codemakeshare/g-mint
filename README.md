@@ -70,10 +70,11 @@ dependencies (may be incomplete):
 - pyserial
 
 on ubuntu:
-sudo apt install python3 python3-pyqt5 python3-pyqt5.qtopengl python3-pyqt5.qsci python3-opengl python3-numpy python3-scipy python3-pip python3-svg.path python3-shapely python3-serial
+sudo apt install python3 python3-pyqt5 python3-pyqt5.qtopengl python3-pyqt5.qsci python3-opengl python3-numpy python3-scipy python3-pip python3-svg.path python3-shapely python3-serial python3-freetype
+
 pip3 install pyqtgraph
 pip3 install pyclipper
-
+pip3 install svgpathtools
 
 to run:
 python3 mincam.py
