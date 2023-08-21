@@ -45,7 +45,7 @@ class PathTool(ItemWithParameters):
                 traceback.print_exc()
         self.startDepth=NumericalParameter(parent=self,  name='start depth',  value=startdepth,  enforceRange=False,  step=1)
         self.stopDepth=NumericalParameter(parent=self,  name='end depth ',  value=enddepth,   enforceRange=0,   step=1)
-        self.maxDepthStep=NumericalParameter(parent=self,  name='max. depth step',  value=10.0,  min=0.1,  max=100,  step=1)
+        self.maxDepthStep=NumericalParameter(parent=self,  name='max. depth step',  value=10.0,  min=0.1,  max=100,  step=0.1)
         self.rampdown=NumericalParameter(parent=self,  name='rampdown per loop (0=off)',  value=0.1,  min=0.0,  max=10,  step=0.01)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=startdepth+5.0,  enforceRange=False,  step=1.0)
         self.laser_mode = NumericalParameter(parent=self,  name='laser mode (power 0-100)',  value=0.0,  min=0.0,  max=100.0,  enforceRange=True,  step=1.0, callback = self.updateView)
