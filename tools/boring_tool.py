@@ -21,8 +21,8 @@ class BoringTool(ItemWithParameters):
         self.ypos = NumericalParameter(parent=self,  name='y ',  value=0,   min=-2000,  max=2000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         self.apos = NumericalParameter(parent=self, name='a ', value=0, min=-360, max=360, enforceRange=False, step=0.1, callback=self.generatePath)
         
-        self.startDiameter = NumericalParameter(parent=self,  name='start diameter',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.1,  callback = self.generatePath)
-        self.diameter = NumericalParameter(parent=self,  name='final diameter',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.01,  callback = self.generatePath)
+        self.startDiameter = NumericalParameter(parent=self,  name='start diameter',  value=8,   min=0,  max=1000,  enforceRange=False,   step=0.1,  callback = self.generatePath)
+        self.diameter = NumericalParameter(parent=self,  name='final diameter',  value=8,   min=0,  max=1000,  enforceRange=False,   step=0.01,  callback = self.generatePath)
         self.radialStepover = NumericalParameter(parent=self,  name='radial stepover',  value=1.0,   min=0.1,  max=10,   step=0.1,  callback = self.generatePath)
         self.pitch=NumericalParameter(parent=self,  name='pitch',  value=1.0,  min=0.01,  max=5,  step=0.01,  callback = self.generatePath)
         self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.1,  callback = self.generatePath)
