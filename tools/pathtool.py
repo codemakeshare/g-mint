@@ -51,6 +51,7 @@ class PathTool(ItemWithParameters):
         self.laser_mode = NumericalParameter(parent=self,  name='laser mode (power 0-100)',  value=0.0,  min=0.0,  max=100.0,  enforceRange=True,  step=1.0, callback = self.updateView)
         self.depthStepping=ActionParameter(parent=self,  name='Depth ramping',  callback=self.applyDepthStep)
         self.depthSteppingRelRamp = CheckboxParameter(parent=self, name='relative ramping')
+        self.depthSteppingAlwaysRamp = CheckboxParameter(parent=self, name='Ramp every segment')
         self.tabs = NumericalParameter(parent=self, name='Tabs per contour', value=0, min=0, max=20, step=1)
         self.tabwidth = NumericalParameter(parent=self, name='Tab width', value=1, min=0, max=20, step=0.1)
         self.tabheight = NumericalParameter(parent=self, name='Tab height', value=0.5, min=0, max=20, step=0.1)
@@ -82,7 +83,8 @@ class PathTool(ItemWithParameters):
                                     self.rampdown,  
                                     self.traverseHeight,   
                                     self.laser_mode, 
-                                    [self.depthStepping, self.depthSteppingRelRamp],
+                                    [self.depthSteppingRelRamp, self.depthSteppingAlwaysRamp],
+                                    self.depthStepping,
                                     [self.tabs, self.tabwidth, self.tabheight],
                                     [self.removeNonCutting,
                                     self.invertPath],
@@ -463,7 +465,7 @@ class PathTool(ItemWithParameters):
                                                               axis_scaling = axis_scaling)
 
                 if (rampdown!=0) and len(segment_output)>3:
-                    if prev_segment is None or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
+                    if prev_segment is None or self.depthSteppingAlwaysRamp.getValue() or closest_point_on_open_polygon(s[0].position, prev_segment)[0] > self.tool.diameter.getValue()/2.0:
                         segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, relRamping, self.path.steppingAxis, axis_scaling)
 
                 if self.tabs.getValue()>0:

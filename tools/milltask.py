@@ -62,9 +62,9 @@ class MillTask(ItemWithParameters):
         self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)
         self.viewUpdater=viewUpdater
 
-    def dropPathToModel(self):
+    def dropPathToModel(self, keepToolDown = False):
         tool_diameter = self.tool.getValue().diameter.value
-        keepToolDown = False
+
         patterns = self.patterns
 
         self.model.__class__ = CAM_Solid
@@ -118,10 +118,13 @@ class PatternTask(MillTask):
         self.sideStep=NumericalParameter(parent=self, name="side step",  value=1.0,  min=0.0001,  step=0.1)
         self.sliceIter=NumericalParameter(parent=self, name="iterations",  value=0,  step=1,  enforceRange=False,  enforceStep=True)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
+        self.dropToGeometry = CheckboxParameter(parent=self, name='drop to geometry')
 
+        self.keepToolDown = CheckboxParameter(parent=self, name='keep tool down')
 
-
-        self.parameters=[self.tool, self.padding,  self.direction,  self.forwardStep,  self.sideStep, self.traverseHeight, self.waterlevel,   self.minStep, self.offset, self.sliceIter,   self.deviation]
+        self.parameters=[self.tool, self.padding,  self.direction,  self.forwardStep,  self.sideStep, self.traverseHeight, 
+                         self.waterlevel,   self.minStep, self.offset, self.sliceIter, self.deviation, 
+                         self.dropToGeometry, self.keepToolDown]
         self.patterns=None
         
 
@@ -329,7 +332,37 @@ class PatternTask(MillTask):
         return stock_poly
         
     def calcPath(self):
-        return self.dropPathToModel()
+    
+        keepToolDown = self.keepToolDown.getValue()
+        self.path = GCode()
+        if self.dropToGeometry.getValue():
+           out = self.dropPathToModel(keepToolDown)
+           
+        else: # just convert pattern to path
+           self.path = GCode()
+                      
+           self.path.append(
+               GPoint(position=(self.patterns[0][0][0], self.patterns[0][0][1], self.traverseHeight.value),
+                      rapid=True))
+           for segment in self.patterns:
+               # self.path+=p
+               if not keepToolDown:
+                   self.path.append(
+                       GPoint(position=(segment[0][0], segment[0][1], self.traverseHeight.value),
+                              rapid=True))
+               for p in segment:
+                   self.path.append(GPoint(position=(p[0], p[1], self.waterlevel.value),
+                              rapid=False))
+               if not keepToolDown:
+                   self.path.append(
+                       GPoint(position=(segment[-1][0], segment[-1][1], self.traverseHeight.value),
+                              rapid=True))
+
+           self.path.append(
+               GPoint(position=(self.patterns[-1][-1][0], self.patterns[-1][-1][1], self.traverseHeight.value),
+                      rapid=True))
+
+        return self.path
 
 class SliceTask(MillTask):
     def __init__(self,  model=None,  tools=[],  **kwargs):
