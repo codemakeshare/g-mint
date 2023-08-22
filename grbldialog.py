@@ -381,7 +381,7 @@ class RTButton(QtWidgets.QPushButton):
 class AxisDisplayWidget(LabeledTextField):
     def __init__(self, label="", value=None, height=30):
         LabeledTextField.__init__(self, label=label, value=value, formatString="{:4.3f}", editable=True)
-        self.setFixedWidth(250)
+        self.setFixedWidth(350)
         self.setFixedHeight(height)
         self.font = QtGui.QFont("Helvetica [Cronyx]", 16);
 
@@ -444,7 +444,7 @@ class AxesWidget(QtWidgets.QWidget):
         self.position_fields = [AxisDisplayWidget(label=self.axes_names[i], value=0.0, height = displayHeight) for i in
                                 range(0, self.number_of_axes)]
         self.wcs_fields = [
-            CommandButton(name=self.wcs_names[i], width=30, height=30, callback=self.changeWCS, callback_argument=i) for
+            CommandButton(name=self.wcs_names[i], width=50, height=40, callback=self.changeWCS, callback_argument=i) for
             i in range(0, len(self.wcs_names))]
         self.active_wcs = 1
 

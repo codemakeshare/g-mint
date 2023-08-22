@@ -75,7 +75,6 @@ pip3 install pyqtgraph
 pip3 install pyclipper
 pip3 install svgpathtools
 
-
 to run:
 python3 mincam.py
 
