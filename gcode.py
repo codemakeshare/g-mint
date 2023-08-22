@@ -70,7 +70,7 @@ class GPoint(GCommand):
     def interpolate_to_points(self, current_pos, current_rotation=None):
         #interpolate 4th axis moves (for visualisation)
         path = []
-        print("ITP", current_pos, current_rotation)
+        #print("ITP", current_pos, current_rotation)
         if current_rotation is not None and self.rotation is not None and current_rotation != self.rotation:
             steps = int(dist(current_rotation,  self.rotation) / 5.0)
             if steps>1:

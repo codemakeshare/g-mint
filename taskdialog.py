@@ -54,6 +54,7 @@ class TaskDialog(QtWidgets.QWidget):
 
         create_pattern_btn.clicked.connect(self.generatePattern)
         start_one_btn.clicked.connect(self.startSelectedTask)
+        start_all_btn.clicked.connect(self.startAllTasks)
 
         self.lastFilename = None
 
@@ -79,15 +80,17 @@ class TaskDialog(QtWidgets.QWidget):
     def updateView(self, newPath, tool=None):
         self.modelmanager.viewer.showPath(newPath, tool)
 
-    def startSelectedTask(self):
+    def startSelectedTask(self, buttonval = False, selectedTask = None):
         try:
-            newPath = self.tasktab.selectedTool.calcPath()
-            existingPath = self.path_output.pathtab.findItem(self.tasktab.selectedTool.name.value)
+            if selectedTask is None:
+                selectedTask = self.tasktab.selectedTool
+            newPath = selectedTask.calcPath()
+            existingPath = self.path_output.pathtab.findItem(selectedTask.name.value)
             if existingPath is None:
                 self.path_output.pathtab.listmodel.addItem(
-                    PathTool(name=self.tasktab.selectedTool.name.value, path=newPath, model=self.tasktab.selectedTool.model,
-                             viewUpdater=self.path_output.view_updater, tool=self.tasktab.selectedTool.tool.getValue(),
-                             source=self.tasktab.selectedTool))
+                    PathTool(name=selectedTask.name.value, path=newPath, model=selectedTask.model,
+                             viewUpdater=self.path_output.view_updater, tool=selectedTask.tool.getValue(),
+                             source=selectedTask))
             else:
                 # update path
                 existingPath.updatePath(newPath)
@@ -95,6 +98,10 @@ class TaskDialog(QtWidgets.QWidget):
         except Exception as e:
             print(e)
             traceback.print_exc()
+
+    def startAllTasks(self):
+        for selectedTask in self.tasktab.getItems():
+            self.startSelectedTask(selectedTask = selectedTask)
 
     def saveTasks(self):
         filename, pattern = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file', '', "*.json")
@@ -128,4 +135,11 @@ class TaskDialog(QtWidgets.QWidget):
             item = buildItemFromDict(i, classDict) (name = i["name"], tools = self.tools, model = self.modelmanager)
             item.restoreParametersFromDict(i["parameters"])
             print(item)
+            #check if task name already exists, and rename if necessary
+            originalName = item.name.value
+            counter = 1
+            while self.tasktab.listmodel.findItem(item.name.value) is not None: 
+                item.name.value = originalName+str(counter)
+                counter+=1
+                print("duplicate task name, changing to ", item.name.value)
             self.tasktab.listmodel.addItem(item)
