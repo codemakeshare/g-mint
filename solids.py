@@ -3,6 +3,7 @@ from numpy import  *
 import math
 from gcode import *
 import time
+from stl import mesh
 #import pyclipper
 
 import multiprocessing as mp
@@ -26,6 +27,14 @@ class facet:
     def __ne__(self, of):
         return not self.__eq__(of)
 
+def load_stl_file2(filename):
+    stlmesh = mesh.Mesh.from_file(filename)
+    facets = []
+    for vec, nm in zip(stlmesh.vectors, stlmesh.normals):
+        f = facet([float(x) for x in nm])
+        f.vertices = [[float(x) for x in vertex]for vertex in vec]
+        facets.append(f)
+    return facets
 
 def load_stl_file(filename):          
     infile = []
@@ -60,7 +69,7 @@ class Solid:
         self.filename=None
         
     def load(self, filename):
-        self.facets=load_stl_file(filename)
+        self.facets=load_stl_file2(filename)
         self.filename=filename
         self.get_bounding_box()
         
