@@ -117,6 +117,16 @@ class Solid:
         #force recomputation of refmap as mesh has changed
         self.refmap=None
     
+    def translate(self, x = 0, y = 0, z = 0):
+        for f in self.facets:
+            for p in f.vertices:
+                p[0] += x
+                p[1] += y
+                p[2] += z
+        self.get_bounding_box()
+        #force recomputation of refmap as mesh has changed
+        self.refmap=None
+
     def get_bounding_box(self):
         if self.facets==None:
             return
