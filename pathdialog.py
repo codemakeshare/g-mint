@@ -37,6 +37,7 @@ class PathDialog(QtWidgets.QWidget):
         newPath = GCode()
         for p in checkedItems:
             newPath.appendPath(p.getCompletePath())
+            p.selected = False
         if len(checkedItems) > 0:
             default_tool = checkedItems[0].tool
             self.pathtab.listmodel.addItem(

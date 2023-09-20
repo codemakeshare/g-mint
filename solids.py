@@ -32,7 +32,7 @@ def load_stl_file2(filename):
     facets = []
     for vec, nm in zip(stlmesh.vectors, stlmesh.normals):
         f = facet([float(x) for x in nm])
-        f.vertices = [[float(x) for x in vertex]for vertex in vec]
+        f.vertices = [array([float(x) for x in vertex]) for vertex in vec]
         facets.append(f)
     return facets
 
@@ -566,7 +566,7 @@ class CAM_Solid(Solid):
             if  depth is None or f.maxHeight>depth:
                 #check point inside triangle
                 # triangle normal vector
-                n=normalize(crossproduct(f.vertices[1]-f.vertices[0], f.vertices[2]-f.vertices[0] ))
+                n=normalize(crossproduct(array(f.vertices[1])-array(f.vertices[0]), array(f.vertices[2])-array(f.vertices[0]) ))
                 if n[2]<0:
                     n=- n
                 
