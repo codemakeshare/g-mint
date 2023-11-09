@@ -57,7 +57,7 @@ class MillTask(ItemWithParameters):
         self.padding=NumericalParameter(parent=self, name="padding",  value=0.0, step=0.1)
         self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=self.model_top+10,  min=self.model_bottom-100,  max=self.model_top+100,  step=1.0)
         self.offset=NumericalParameter(parent=self,  name='offset',  value=0.0,  min=-100,  max=100,  step=0.01)
-        self.waterlevel=NumericalParameter(parent=self,  name='waterlevel',  value=self.model_bottom,  min=self.model_bottom,  max=self.model_top,  step=1.0)
+        self.waterlevel=NumericalParameter(parent=self,  name='waterlevel',  value=self.model_bottom,  min=self.model_bottom,  max=self.model_top,  step=0.01)
         self.deviation = NumericalParameter(parent=self, name='max. deviation', value=0.1, min=0.0, max=10, step=0.01)
         self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)
         self.viewUpdater=viewUpdater

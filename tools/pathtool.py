@@ -469,7 +469,7 @@ class PathTool(ItemWithParameters):
                         segment_output = self.applyRampDown(segment_output, previousCutDepth, currentDepthLimit, rampdown, relRamping, self.path.steppingAxis, axis_scaling)
 
                 if self.tabs.getValue()>0:
-                    self.applyTabbing(segment_output, self.tabs.getValue(), self.tabwidth.getValue(), self.tabheight.getValue())
+                    self.applyTabbing(segment_output, int(self.tabs.getValue()), self.tabwidth.getValue(), self.tabheight.getValue())
 
                 for p in segment_output:
                     newpath.append(p)
