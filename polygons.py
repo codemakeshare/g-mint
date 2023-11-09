@@ -362,11 +362,29 @@ class PolygonGroup:
         else:
             return []
 
+    #compares polygon to a reference polygon and returns the largest distance between the two contours
+    def getMaxPolyDistance(self,  reference):
+        result = 0
+        resultPoint = None
+        resultIndex = 0
+        subpoly=[]
+        for poly in self.polygons:
+            for p in poly+[poly[0]]:
+                found = False
+                for r in reference.polygons:
+                    bdist,  bpoint,  bindex = closest_point_on_polygon(p,  r)
+                    if bdist>result: # found a point that is within tolerance
+                        result = bdist
+                        resultPoint = bpoint
+                        resultIndex = bindex
+        return result, resultPoint, resultIndex
+
     #compares polygon to a reference polygon and returns a set of subpaths that differ from the reference
     def getDifferentPathlets(self,  reference,  tolerance=0.01):
         result = PolygonGroup(scaling = self.scaling,  precision = self.precision,  zlevel = self.zlevel)
         result.polygons=[]
         subpoly=[]
+        last_point_on_polygon = None
         for poly in self.polygons:
             for p in poly+[poly[0]]:
                 found = False
@@ -375,12 +393,19 @@ class PolygonGroup:
                     if bdist<tolerance: # found a point that is within tolerance
                         found=True
                         break
-                if not found: # if we could not find a point within tolerance, abort
+                if not found: # if we could not find a point within tolerance, collect into subpoly
                    subpoly.append(p)
-                else:
+                else: # we're back on the polygon - append subpoly to output and continue
                     if len(subpoly)>0:
+                        # include last point on polygon for smooth transition
+                        if last_point_on_polygon is not None:
+                            subpoly.insert(0, last_point_on_polygon)
+                        # and add first point back on polygon too:
+                        subpoly.append(p)
                         result.polygons.append(subpoly)
                         subpoly=[]
+                    #remember the last point common with reference
+                    last_point_on_polygon = p
                     
         return result
 
@@ -397,12 +422,12 @@ class polygon_tree:
         if len(new_path) == 0:  # empty poly - ignore
             return
         if self.parent is None:
-            print("adding path", polygon_chirality(new_path))
+            #print("adding path", polygon_chirality(new_path))
             if len(self.children) < 2:
                 self.children = [polygon_tree(), polygon_tree()]
                 self.children[0].parent = self
                 self.children[1].parent = self
-            print("top level:", len(self.children))
+            #print("top level:", len(self.children))
             if polygon_chirality(new_path) < 0:
                 self.children[0].insert(new_path)
             else:
@@ -413,7 +438,7 @@ class polygon_tree:
             return
 
         if (new_path[0][2] == self.path[0][2] and polygons_nested(new_path, self.path)):
-            print("fits into me")
+            #print("fits into me")
             # check which sub-branch to go down
             for child in self.children:
                 if new_path[0][2] == child.path[0][2] and polygons_nested(new_path, child.path):
@@ -427,7 +452,7 @@ class polygon_tree:
             node = polygon_tree(new_path)
             for child in self.children:
                 if new_path[0][2] == child.path[0][2] and polygons_nested(child.path, new_path):
-                    print("push down to child")
+                    #print("push down to child")
                     # shift child into subtree of node
                     self.children.remove(child)
                     node.children.append(child)
@@ -442,7 +467,7 @@ class polygon_tree:
 
         else:
             if (new_path[0][2] == self.path[0][2] and polygons_nested(self.path, new_path)):
-                print("I fit into it")
+                #print("I fit into it")
                 # if path doesn't fit into this node, shift this node into new subtree
                 tmp = polygon_tree(self.path)
                 tmp.parent = self
@@ -450,16 +475,16 @@ class polygon_tree:
                 self.children = [tmp]
                 self.path = new_path
             else:
-                print("path doesn't fit anywhere!")
+                #print("path doesn't fit anywhere!")
                 inserted = False
                 if self.parent is not None:
                     for child in self.parent.children:
                         if child is not None and child.path is not None and new_path[0][2] == child.path[0][2] and polygons_nested(child.path, new_path):
-                            print("push down to child")
+                            #print("push down to child")
                             inserted = True
                             child.insert(new_path)
                 if not inserted:
-                    print("create new parallel path")
+                    #print("create new parallel path")
                     self.parent.children.append(polygon_tree(new_path))
 
     def pathLength(self):

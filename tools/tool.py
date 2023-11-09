@@ -12,10 +12,10 @@ class Tool(ItemWithParameters):
         self.shape     =ChoiceParameter(parent=self,  name="Cutter type",  choices=['ball',  'slot',  'ball/heightmap', 'slot/heightmap'],  value=shape)
         self.diameter=NumericalParameter(parent=self, name="diameter (mm)",  value=diameter,  min=0.0,  step=0.01,  callback = self.calculateFeedandSpeed)
         self.flutes =NumericalParameter(parent=self,  name='flutes',  value=2,  min=1.0,  max=20,  step=1,  callback = self.calculateFeedandSpeed)
-        self.chipload =NumericalParameter(parent=self,  name='chipload (mm/tooth)',  value=0.03,  min=0.01,  max=1,  step=0.001,  callback = self.calculateFeedandSpeed)
+        self.chipload =NumericalParameter(parent=self,  name='chipload (mm/tooth)',  value=0.02,  min=0.01,  max=1,  step=0.001,  callback = self.calculateFeedandSpeed)
         self.engagement = NumericalParameter(parent=self,  name='max. engagement/WOC',  value=0.5,  min=0.1,  max=30,  step=0.1,  callback = self.calculateFeedandSpeed)
         self.maxDOC  = NumericalParameter(parent=self,  name='max. depth of cut (DOC)',  value=10.0,  min=0.0,  max=100,  step=0.1,  callback = self.calculateFeedandSpeed)
-        self.surfacespeed=NumericalParameter(parent=self,  name='surface speed (m/min)',  value=60,  min=1,  max=600,  step=10,  callback = self.calculateFeedandSpeed)
+        self.surfacespeed=NumericalParameter(parent=self,  name='surface speed (m/min)',  value=200,  min=1,  max=600,  step=10,  callback = self.calculateFeedandSpeed)
         
         self.spindleRPM=NumericalParameter(parent=self,  name='spindle speed (RPM)',  value=0,  min=1,  max=100000,  step=1,  editable=False)
         self.feedrate=NumericalParameter(parent=self,  name='feedrate(mm/min)',  value=0,  min=1,  max=20000,  step=1,  editable=False)

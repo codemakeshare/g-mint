@@ -385,6 +385,7 @@ class SliceTask(MillTask):
             self.model=model.object
 
         self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.1)
+        self.stepStretching = NumericalParameter(parent=self,  name='stepover stretching',  value=0.0,  min=0,  max=100,  step=1)
         self.radialOffset = NumericalParameter(parent=self, name='radial offset', value=0.0, min=-100, max=100, step=0.01)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
         self.pathRounding = NumericalParameter(parent=self,  name='path rounding',  value=0.0,  min=0,  max=10,  step=0.01)
@@ -400,7 +401,21 @@ class SliceTask(MillTask):
 
         self.scalloping=NumericalParameter(parent=self, name="scalloping",  value=0,  step=1,  enforceRange=False,  enforceStep=True)
 
-        self.parameters=[self.tool, [self.stockMinX,  self.stockMinY],  [self.stockSizeX,  self.stockSizeY], self.operation, self.direction,  self.sideStep, self.traverseHeight,   self.radialOffset,   self.pathRounding, self.precision,  self.sliceTop,  self.sliceBottom, self.sliceStep,  self.sliceIter,  self.scalloping]
+        self.parameters=[self.tool, [self.stockMinX,  self.stockMinY],  
+                        [self.stockSizeX,  self.stockSizeY], 
+                        self.operation, 
+                        self.direction,  
+                        self.sideStep, 
+                        self.stepStretching, 
+                        self.traverseHeight,   
+                        self.radialOffset,   
+                        self.pathRounding, 
+                        self.precision,  
+                        self.sliceTop,  
+                        self.sliceBottom, 
+                        self.sliceStep,  
+                        self.sliceIter,  
+                        self.scalloping]
         self.patterns=None
         
 
@@ -594,7 +609,7 @@ class SliceTask(MillTask):
             
             radius=self.tool.getValue().diameter.value/2.0+self.radialOffset.value
             rounding = self.pathRounding.getValue()
-
+            stretching  = self.stepStretching.getValue()/100.0
             iterations=max_iterations
             input = PolygonGroup(patternLevels[sliceLevel],  precision = self.precision.getValue(),  zlevel = sliceLevel)
 
@@ -605,26 +620,34 @@ class SliceTask(MillTask):
             irounding = 0
             while len(input.polygons)>0 and (max_iterations<=0 or iterations>0):
                 irounding+=2*self.sideStep.value
+                rounding += self.sideStep.value * stretching
                 if irounding>rounding:
                     irounding=rounding
                 offset = input.offset(radius = radius,  rounding = irounding)
                 offset.trim(trimPoly)
+
+                distToPrevious, furthestPoint, furthestIndex = offset.getMaxPolyDistance(input)
+                print("max dist: ", distToPrevious)
+
                 if self.scalloping.getValue()>0 and iterations!=max_iterations:
                     interLevels=[]
                     inter=offset
                     for i in range(0, int(self.scalloping.getValue())):
-                        inter2 = inter.offset(radius=-1.5*self.sideStep.value)
-                        inter2.trim(input)
-                        inter2 = inter2.offset(radius=self.sideStep.value)
-                        inter2 = inter2.offset(radius=-self.sideStep.value)
-                        inter2.trim(input)
-                        #if inter2.compare(input,  tolerance = 0.1): # check if polygons are the "same" after trimming
-                        #    break
-                            
-                        pathlets = inter2.getDifferentPathlets(input,  tolerance = 0.1)
-                        #pathlets = inter2
-                        for poly in pathlets.polygons:
-                            interLevels.append(poly)
+                        try:
+                            inter2 = inter.offset(radius=-1.5*self.sideStep.value)
+                            inter2.trim(input)
+                            inter2 = inter2.offset(radius=self.sideStep.value)
+                            inter2 = inter2.offset(radius=-self.sideStep.value)
+                            inter2.trim(input)
+                            #if inter2.compare(input,  tolerance = 0.1): # check if polygons are the "same" after trimming
+                            #    break
+                                
+                            pathlets = inter2.getDifferentPathlets(input,  tolerance = 0.1*radius)
+                            #pathlets = inter2
+                            for poly in pathlets.polygons:
+                                interLevels.append(poly)
+                        except Exception as e:
+                            print("Scalloping error!", e)
                         inter = inter2
                     for poly in reversed(interLevels):
                         #close polygon

@@ -43,7 +43,7 @@ class CAMGui(QtWidgets.QSplitter):
         laser_tool = Tool(name="Laser", diameter=0.1)
         laser_tool.flutes.updateValue(1)
         laser_tool.surfacespeed.updateValue(10)
-        default_tools = [laser_tool, Tool(diameter=6), Tool_lathe_insert(viewer = self.modeltab.viewer)]
+        default_tools = [laser_tool, Tool(diameter=3), Tool(diameter=6), Tool_lathe_insert(viewer = self.modeltab.viewer)]
 
 
         self.tooltab=ListWidget(itemlist= default_tools, title="Tools", itemclass=self.availableToolTypes,  name=None, viewer = self.modeltab.viewer)
