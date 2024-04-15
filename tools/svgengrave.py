@@ -6,10 +6,28 @@ import time
 import pyclipper
 from polygons import *
 from gcode import *
-import svgparse
-import xml.etree.ElementTree as ET
-import re
+
+import svgpathtools
+from svgpathtools import svg2paths2
+import numpy as np
+
+#import svgparse
+#import xml.etree.ElementTree as ET
+#import re
 from .milltask import SliceTask
+
+def svgpathtools_unpacker(obj, sample_points=10):
+    path = []
+    if isinstance(obj, (svgpathtools.path.Path, list)):
+        for i in obj:
+            path.extend(svgpathtools_unpacker(i, sample_points=sample_points))
+    elif isinstance(obj, svgpathtools.path.Line):
+        path.extend(obj.bpoints())
+    elif isinstance(obj, (svgpathtools.path.CubicBezier, svgpathtools.path.QuadraticBezier)):
+        path.extend(obj.points(np.linspace(0,1,sample_points)))
+    else:
+        print(type(obj))
+    return np.array(path)
 
 class SVGEngraveTask(SliceTask):
     def __init__(self,  model=None,  tools=[], viewUpdater=None, **kwargs):
@@ -58,27 +76,17 @@ class SVGEngraveTask(SliceTask):
 
 
 
+
     def generatePattern(self):
-        tree = ET.parse(self.inputFile.getValue())
-        root = tree.getroot()
-        ns = re.search(r'\{(.*)\}', root.tag).group(1)
 
+        paths, attributes, svg_attributes = svg2paths2(self.inputFile.getValue())
         self.patterns=[]
-        for geo in svgparse.getsvggeo(root):
-            print(geo.geom_type)
-            if geo.geom_type =="Polygon":
-                #convert shapely polygon to point list
-                points = [(x[0], -x[1], 0) for x in list(geo.exterior.coords)]
-                self.patterns.append(points)
-                for hole in geo.interiors:
-                    points = [(x[0], -x[1], 0) for x in list(hole.coords)]
-                    self.patterns.append(points)
 
-            if geo.geom_type =="MultiPolygon":
-                for poly in geo:
-                    #convert shapely polygon to point list
-                    points = [(x[0], -x[1], 0) for x in list(poly.exterior.coords)]
-                    self.patterns.append(points)
+
+        for path in paths:
+            sampled_path = svgpathtools_unpacker(path)
+            coords = [(p.real, -p.imag, 0) for p in sampled_path]
+            self.patterns.append(coords)
 
         self.model_minv, self.model_maxv = polygon_bounding_box([p for pattern in self.patterns for p in pattern ])
         self.stockMinX.updateValue(self.model_minv[0])

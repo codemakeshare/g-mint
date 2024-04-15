@@ -44,6 +44,7 @@ class BendingTask(ItemWithParameters):
         self.inputFile = FileParameter(parent=self, name="input file", fileSelectionPattern="SVG (*.svg)")
 
         self.toolEngagementAngle=NumericalParameter(parent=self, name="engagement angle",  value=5,  min=0.0,  max=90.0,  step=0.1)        
+        self.toolPostBendFeed=NumericalParameter(parent=self, name="post-bend feed",  value=1.0,  min=0.0,  max=5.0,  step=0.1)        
 
         self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)        
         self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.01)
@@ -64,8 +65,17 @@ class BendingTask(ItemWithParameters):
         for path in paths:
             sampled_path = svgpathtools_unpacker(path)
             coords = [(p.real, -p.imag, 0) for p in sampled_path]
-            self.patterns.append(coords)
+            clean_coords = [coords[0]]
 
+            for p in coords[1:]:
+                if dist2D(p, clean_coords[-1])>0.0001:
+                    clean_coords.append(p)
+
+            self.patterns.append(clean_coords)
+
+
+    def simulateBend(self):
+        pass
 
     def calcPath(self):
         path = []
@@ -73,12 +83,35 @@ class BendingTask(ItemWithParameters):
 
         pattern = self.patterns[0]
         angles = []
-        for index in range(1, len(pattern)):
-            seg_len = dist2D(pattern[index], pattern[index-1])
-            bend_angle = full_angle2d(pattern[index-1], pattern[index])
+        feed_pos = 0
+        pbf = self.toolPostBendFeed.getValue()
+        for index in range(2, len(pattern)-1):
+            p0 = pattern[index - 1]
+            p1 = pattern[index]
+            p2 = pattern[index + 1]
+            seg_len = dist2D(p0, p1)
+            v0 = sub(p1, p0)
+            v1 = sub(p2, p1)
+            bend_angle = full_angle2d(v0, v1)
+
+            print(pattern[index-1], pattern[index], seg_len, bend_angle)
+            while bend_angle<-math.pi: bend_angle+=2.0*math.pi
+            while bend_angle>=math.pi: bend_angle-=2.0*math.pi
+            bend_angle = 180.0 * bend_angle / math.pi
+            bend_angle += sign(bend_angle) * self.toolEngagementAngle.getValue()
+            feed_pos = feed_pos + seg_len
 
             angles.append(bend_angle)
-            path.append(GPoint(position=([seg_len,bend_angle,0])))
+            # move to bend position
+            path.append(GPoint(position=([feed_pos, 0 , 0])))
+            # perform bend rotation
+            path.append(GPoint(position=([feed_pos, bend_angle,0])))
+            # post-bend feed, disengage tool
+            path.append(GPoint(position=([feed_pos + pbf, 0 ,0])))
+            
+
+        path.append(GPoint(position=([feed_pos, 0 , 0])))
+
         print (angles)
         print (path)
         self.path.path += path

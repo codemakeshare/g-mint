@@ -72,9 +72,10 @@ class CAMGui(QtWidgets.QSplitter):
         #self.addWidget(self.modeltab.viewer)
         self.setWindowTitle('minCAM')
         self.updateGeometry()
-        self.resize(1600,  900)
+        screenSize = screen = QApplication.primaryScreen().size()
+        self.resize(int(screenSize.width()/2),  900)
         ## Display the widget as a new window
-        self.setSizes([700,4000])
+        self.setSizes([1200,4000])
         self.setStretchFactor(1,1)
 
 

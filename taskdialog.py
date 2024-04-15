@@ -10,6 +10,7 @@ from tools.lathetask import *
 from tools.lathethreadingtool import *
 from tools.svgengrave import *
 from tools.textengrave import *
+from tools.bending import *
 import traceback
 from guifw.gui_elements import *
 
@@ -31,7 +32,9 @@ class TaskDialog(QtWidgets.QWidget):
                                            ("Threading", ThreadingTool),
                                            ("timing pulley",TimingPulleyTool),
                                            ("SVG engrave", SVGEngraveTask),
-                                           ("Text engrave", TextEngraveTask)]
+                                           ("Text engrave", TextEngraveTask),
+                                           ("Wire bending", BendingTask)
+                                           ]
         )
 
         self.tasktab = ListWidget(itemlist=[], title="Milling tasks", itemclass=self.availableTasks, name="Task",
