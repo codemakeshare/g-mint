@@ -46,12 +46,17 @@ class BendingTask(ItemWithParameters):
         self.toolEngagementAngle=NumericalParameter(parent=self, name="engagement angle",  value=35,  min=0.0,  max=90.0,  step=0.1)        
         self.toolPostBendFeed=NumericalParameter(parent=self, name="post-bend feed",  value=2.0,  min=0.0,  max=5.0,  step=0.1)        
 
-        self.minStep=NumericalParameter(parent=self, name="min. step size",  value=0.1,  min=0.0,  max=50.0,  step=0.01)        
-        self.sideStep=NumericalParameter(parent=self, name="stepover",  value=1.0,  min=0.0001,  step=0.01)
+        self.bendingZPos=NumericalParameter(parent=self, name="bending Z position",  value=20.0,  min=0.0,  max=100.0,  step=0.1)        
 
-        self.precision = NumericalParameter(parent=self,  name='precision',  value=0.005,  min=0.001,  max=1,  step=0.001)
+        self.cutEnabled = CheckboxParameter(parent=self, name="Cut-off")
+        self.cutOffX=NumericalParameter(parent=self, name="cutter X offset",  value=50.0,  min=0.0,  max=100.0,  step=0.1)        
+        self.cutOffZ=NumericalParameter(parent=self, name="cutter Z offset",  value=0.0,  min=0.0,  max=100.0,  step=0.1)        
 
-        self.parameters = [self.inputFile,  self.precision,  self.sideStep, self.minStep, self.toolEngagementAngle, self.toolPostBendFeed]
+        self.parameters = [self.inputFile, 
+                           self.toolEngagementAngle, 
+                           self.toolPostBendFeed, 
+                           self.bendingZPos, 
+                           [self.cutEnabled, self.cutOffX, self.cutOffZ]]
         self.patterns = None
 
 
@@ -86,8 +91,13 @@ class BendingTask(ItemWithParameters):
         feed_pos = 0
         pbf = self.toolPostBendFeed.getValue()
         te_angle = self.toolEngagementAngle.getValue() * math.pi/180.0
+        zpos = self.bendingZPos.getValue()
         bend_angle = 0
         v1=[0,0,0]
+
+        # reset X axis to 0
+        path.append(GCommand(command = "G10 P1 L20 x0.0"))
+
         for index in range(1, len(pattern)-1):
             p0 = pattern[index - 1]
             p1 = pattern[index]
@@ -109,16 +119,26 @@ class BendingTask(ItemWithParameters):
             engagement = sign(bend_angle)*te_angle*0.9
             # move to bend position, with tool close to engagement position
             if abs(bend_angle)> 5 * math.pi/180.0:
-                path.append(GPoint(position=([feed_pos, engagement , 0])))
+                path.append(GPoint(position=([feed_pos, engagement , zpos])))
             else:
-                path.append(GPoint(position=([feed_pos, 0 , 0])))
+                path.append(GPoint(position=([feed_pos, 0 , zpos])))
             # perform bend rotation
-            path.append(GPoint(position=([feed_pos, bend_angle,0])))
+            path.append(GPoint(position=([feed_pos, bend_angle,zpos])))
             # post-bend feed, disengage tool but leave it close to engagement
-            path.append(GPoint(position=([feed_pos + min(pbf, norm(v1)), engagement ,0])))
+            path.append(GPoint(position=([feed_pos + min(pbf, norm(v1)), engagement ,zpos])))
             
+        feed_pos += norm(v1)
+        path.append(GPoint(position=([feed_pos, 0 , zpos])))
 
-        path.append(GPoint(position=([feed_pos + norm(v1), 0 , 0])))
+        if self.cutEnabled.getValue():
+            path.append(GPoint(position=([feed_pos + self.cutOffX.getValue(), 0 , zpos])))
+            path.append(GPoint(position=([feed_pos + self.cutOffX.getValue(), 0 , self.cutOffZ.getValue()])))
+            # activate cutter
+
+            path.append(GPoint(position=([feed_pos , 0 , zpos])))
+
+
+
 
         print (angles)
         print (path)
