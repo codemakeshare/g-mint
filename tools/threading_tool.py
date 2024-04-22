@@ -10,7 +10,8 @@ class ThreadingTool(ItemWithParameters):
         self.viewUpdater = viewUpdater
         self.path = GCode()
         
-        self.millingDirection = ChoiceParameter(parent=self,  name="Milling direction",  choices=["CW top-down (RH)", "CCW bottom-up (RH)", "CCW top-down (LH)", "CW bottom-up (LH)"],  value="CW top-down (RH)",  callback = self.generatePath)
+        self.millingDirection = ChoiceParameter(parent=self,  name="Milling direction", value="CW top-down (RH)", choices=["CW top-down (RH)", "CCW bottom-up (RH)", "CCW top-down (LH)", "CW bottom-up (LH)"],    callback = self.generatePath)
+        self.threadSide = ChoiceParameter(parent=self,  name="Internal/external",  value = "internal", choices=["internal", "external"],  callback = self.generatePath)
 
         self.presets = OrderedDict([("M3",[3, 0.5,  0,  2.0]),
                                     ("M4",[4, 0.7, 0,  2.0]),
@@ -32,19 +33,37 @@ class ThreadingTool(ItemWithParameters):
         
         self.startDiameter = NumericalParameter(parent=self,  name='start diameter ',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.1,  callback = self.generatePath)
         self.diameter = NumericalParameter(parent=self,  name='final diameter ',  value=8,   min=0,  max=100,  enforceRange=False,   step=0.01,  callback = self.generatePath)
-        self.diameterSteps = NumericalParameter(parent=self,  name='diameter steps ',  value=0,   min=0,  max=10,   step=1,  callback = self.generatePath)
+        self.diameterSteps = NumericalParameter(parent=self,  name='diameter passes ',  value=0,   min=0,  max=10,   step=1,  callback = self.generatePath)
         self.pitch=NumericalParameter(parent=self,  name='thread pitch',  value=1.0,  min=0.01,  max=5,  step=0.01,  callback = self.generatePath)
         self.toolDiameter=NumericalParameter(parent=self,  name='tool tip diameter',  value=4.0,  min=0,  max=20,  step=0.01,  callback = self.generatePath)
         self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01,  callback = self.generatePath)
-        self.backoffPercentage=NumericalParameter(parent=self,  name='backoff percentage',  value=100.0,  min=-30,  max=100,  enforceRange=False,  step=5,  callback = self.generatePath)
 
-        self.traverseHeight=NumericalParameter(parent=self,  name='traverse height',  value=5.0,  enforceRange=False,  step=1.0,  callback = self.generatePath)
+        self.angleSteps = NumericalParameter(parent=self, name='angle steps', value=200, min = 60, max = 3600, step = 10, callback = self.generatePath)
+        self.traverseClearance=NumericalParameter(parent=self,  name='traverse clearance',  value=5.0,  enforceRange=False,  step=1.0,  callback = self.generatePath)
+        self.backoffPercentage=NumericalParameter(parent=self,  name='backoff percentage',  value=100.0,  min=-30,  max=100,  enforceRange=False,  step=5,  callback = self.generatePath)
 
         self.filename=TextParameter(parent=self,  name="output filename",  value="thread.ngc")
         self.saveButton=ActionParameter(parent=self,  name='Save to file',  callback=self.save)
         self.feedrate=NumericalParameter(parent=self,  name='default feedrate',  value=400.0,  min=1,  max=5000,  step=10)
         
-        self.parameters=[self.tool, self.millingDirection, self.presetParameter,  [  self.xpos,  self.ypos],  self.startDepth, self.stopDepth,  self.startDiameter,  self.diameter, self.diameterSteps,  self.pitch,  self.toolDiameter,  self.coneAngle,  self.backoffPercentage,  self.traverseHeight, self.feedrate,  [self.filename,  self.saveButton] ]
+        self.parameters=[#self.tool, 
+                         self.threadSide, 
+                         self.millingDirection, 
+                         self.presetParameter,  
+                         [  self.xpos,  self.ypos],  
+                         self.startDepth, 
+                         self.stopDepth,  
+                         self.startDiameter,  
+                         self.diameter, 
+                         self.diameterSteps,  
+                         self.pitch,  
+                         self.toolDiameter,  
+                         self.coneAngle,  
+                         self.backoffPercentage,  
+                         self.traverseClearance, 
+                         self.feedrate,  
+                         self.angleSteps
+                         ]
         self.generatePath(None)
 
     def setThread(self,  diameter,  pitch,  angle,  tool):
@@ -74,15 +93,27 @@ class ThreadingTool(ItemWithParameters):
         start_depth = self.startDepth.getValue() 
         final_depth = self.stopDepth.getValue()
         stepdown = self.pitch.getValue()
+        traverse_height=start_depth + self.traverseClearance.getValue()
+
         tool_radius = self.toolDiameter.getValue()/2.0
-        traverse_height=self.traverseHeight.getValue()
         backoff_percentage=self.backoffPercentage.getValue()/100.0
+
+        if self.threadSide.getValue() == "internal":
+            tool_radius = self.toolDiameter.getValue()/2.0
+            backoff_percentage=self.backoffPercentage.getValue()/100.0
+        elif self.threadSide.getValue() == "external": # for external threads, invert the tool offset and back-off
+            tool_radius = -self.toolDiameter.getValue()/2.0
+            backoff_percentage = -self.backoffPercentage.getValue()/100.0
+        else:
+            print("Invalid thread selection!")
+            return
+
         hole_diameter = self.diameter.getValue()
         hole_radius=self.startDiameter.getValue()/2.0
         if self.diameterSteps.getValue()==0:
             hole_radius = hole_diameter/2.0
         cone_angle = self.coneAngle.getValue()/180.0*PI
-        angle_steps=200
+        angle_steps = int(self.angleSteps.getValue())
         
         lefthand = self.millingDirection.getValue() in [ "CCW top-down (LH)", "CW bottom-up (LH)"]
         bottomup = self.millingDirection.getValue() in ["CCW bottom-up (RH)",  "CW bottom-up (LH)"]
