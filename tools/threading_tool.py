@@ -38,6 +38,9 @@ class ThreadingTool(ItemWithParameters):
         self.toolDiameter=NumericalParameter(parent=self,  name='tool tip diameter',  value=4.0,  min=0,  max=20,  step=0.01,  callback = self.generatePath)
         self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01,  callback = self.generatePath)
 
+        self.topRelief = CheckboxParameter(parent=self, name='top relief', value=False, callback=self.generatePath)
+        self.bottomRelief = CheckboxParameter(parent=self, name='bottom relief', value=False, callback=self.generatePath)
+
         self.angleSteps = NumericalParameter(parent=self, name='angle steps', value=200, min = 60, max = 3600, step = 10, callback = self.generatePath)
         self.traverseClearance=NumericalParameter(parent=self,  name='traverse clearance',  value=5.0,  enforceRange=False,  step=1.0,  callback = self.generatePath)
         self.backoffPercentage=NumericalParameter(parent=self,  name='backoff percentage',  value=100.0,  min=-30,  max=100,  enforceRange=False,  step=5,  callback = self.generatePath)
@@ -61,6 +64,7 @@ class ThreadingTool(ItemWithParameters):
                          self.coneAngle,  
                          self.backoffPercentage,  
                          self.traverseClearance, 
+                         [self.topRelief, self.bottomRelief],
                          self.feedrate,  
                          self.angleSteps
                          ]
@@ -127,29 +131,33 @@ class ThreadingTool(ItemWithParameters):
             path.append(GPoint(position=([x, y, traverse_height]),  rapid=True))
             z=start_depth
             path.append(GPoint(position=([x,y,z])))
-            while d>final_depth:
+            topReliefProgress = 0 # degrees of the relief pass
+            bottomReliefProgress = 0 # degrees of the relief pass
+            if self.topRelief.getValue() is True:
+                topReliefProgress = -angle_steps #queue up one relief pass before descending
+            if self.bottomRelief.getValue() is True:
+                bottomReliefProgress = -angle_steps #queue up one relief pass before descending
+
+            while d>final_depth or bottomReliefProgress <=0:
                 for i in range(0,angle_steps+1):
                     if d>final_depth:
-                        d-=stepdown/angle_steps
+                        if topReliefProgress>0:
+                            d-=stepdown/angle_steps
+                        else:
+                            topReliefProgress += 1
                     else:
                         d=final_depth
-                        break
+                        if bottomReliefProgress > 0:
+                            break
+                        else: #keep going until bottom relief pass is done
+                            bottomReliefProgress += 1
+
                     x=pos[0]+ (hole_radius-tool_radius+(d-start_depth)*sin(cone_angle)/cos(cone_angle)) *sin((float(i)/angle_steps)*2*PI)
                     y=pos[1]+ (hole_radius-tool_radius+(d-start_depth)*sin(cone_angle)/cos(cone_angle)) *cos((float(i)/angle_steps)*2*PI)
                     z=d
                     if lefthand:
                         x=-x
                     path.append(GPoint(position=([x,y,z])))
-
-    #        for i in range(0,angle_steps+1):
-    #            if d>final_depth:
-    #                d-=stepdown/angle_steps
-    #            else:
-    #                d=final_depth   
-    #            x=pos[0]+ (hole_radius-tool_radius+(d-start_depth)*sin(cone_angle)) *sin((float(i)/angle_steps)*2*PI)
-    #            y=pos[1]+ (hole_radius-tool_radius+(d-start_depth)*sin(cone_angle)) *cos((float(i)/angle_steps)*2*PI)
-    #            z=d
-    #            path.append([x,y,z])
 
             x=(1.0-backoff_percentage)*x + backoff_percentage*pos[0]
             y=(1.0-backoff_percentage)*y + backoff_percentage*pos[1]
