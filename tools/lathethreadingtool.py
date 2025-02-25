@@ -29,7 +29,7 @@ class LatheThreadingTool(ItemWithParameters):
                                     ("M8 x 1.25", [ 8,  6.75, 1.25,  0]),
                                     ("M10 x 1.5",[10,  8.5 , 1.5 ,  0]),
                                     ("M12 x 1.5",[12, 10.5, 1.5,  0]),
-                                    ("M12 x 1.75",[12, 10.25, 1.75,  0]),
+                                    ("M12 x 1.75",[12, 9.8, 1.75,  0]),
                                     ("M14 x 2", [14, 11.8, 2.0 , 0]),
                                     ("M16 x 2", [16, 14  , 2.0 , 0]),
                                     ("M20 x 2.5", [20, 17.5, 2.5, 0]),
@@ -42,10 +42,10 @@ class LatheThreadingTool(ItemWithParameters):
         }
 
         self.outputFormatChoice = ChoiceParameter(parent=self, name="Output format",
-                                                  choices=list(self.output_format.keys()),
-                                                  value=list(self.output_format.keys())[0])
+                                                  choices=list(self.output_format),
+                                                  value=list(self.output_format)[0])
 
-        self.presetParameter = ChoiceParameter(parent=self,  name="Presets",  choices=self.presets.keys(),  value = "M10 x 1.5",  callback = self.loadPreset)
+        self.presetParameter = ChoiceParameter(parent=self,  name="Presets",  choices=self.presets,  value = "M10 x 1.5",  callback = self.loadPreset)
 
         self.tool = ChoiceParameter(parent=self, name="Tool", choices=tools, value=tools[0])
         self.viewUpdater=viewUpdater
@@ -61,14 +61,27 @@ class LatheThreadingTool(ItemWithParameters):
         self.start_diameter=NumericalParameter(parent=self, name="start diameter",  value=10.0,  min=0.1,  step=0.1, callback = self.generatePath)
         self.end_diameter=NumericalParameter(parent=self, name="end diameter",  value=10.0,  min=0.1,  step=0.1, callback = self.generatePath)
         self.coneAngle=NumericalParameter(parent=self,  name='cone angle',  value=0.0,  min=-89.9,  max=89.9,  step=0.01,  callback = self.generatePath)
+        self.feedAngle=NumericalParameter(parent=self,  name='feed angle',  value=0.0,  min=-45.9,  max=45.9,  step=0.1,  callback = self.generatePath)
+        self.leadoutAngle=NumericalParameter(parent=self,  name='lead-out angle',  value=30.0,  min=0,  max=360,  step=1.0,  callback = self.generatePath)
 
         self.stepover=NumericalParameter(parent=self, name="stepover",  value=0.2,  min=0.0001,  step=0.01, callback = self.generatePath)
 
         self.retract = NumericalParameter(parent=self, name="retract",  value=1.0,  min=0.0001,  step=0.1, callback = self.generatePath)
         #self.diameter=NumericalParameter(parent=self, name="tool diameter",  value=6.0,  min=0.0,  max=1000.0,  step=0.1)
 
-        self.parameters=[self.outputFormatChoice, self.presetParameter, [self.leftBound, self.rightBound],  self.toolSide, self.direction,  self.retract,
-                         self.pitch, self.start_diameter, self.end_diameter, self.coneAngle, self.stepover]
+        self.parameters=[self.outputFormatChoice, 
+                         self.presetParameter, 
+                         [self.leftBound, self.rightBound],  
+                         self.toolSide, 
+                         self.direction,  
+                         self.retract,
+                         self.pitch, 
+                         self.start_diameter, 
+                         self.end_diameter, 
+                         self.coneAngle, 
+                         self.stepover, 
+                         self.feedAngle, 
+                         self.leadoutAngle]
         self.patterns=None
         self.loadPreset(self.presetParameter)
 
@@ -92,35 +105,51 @@ class LatheThreadingTool(ItemWithParameters):
 
     def external_thread(self):
         offset_path = []
-        y = -self.start_diameter.getValue()/2.0
-        retract_y = y-self.retract.getValue()
+        start_y = -self.start_diameter.getValue()/2.0 # for visualization y is negative - will be fixed during export to GCode
+        retract_y = start_y-self.retract.getValue()
         stepover = self.stepover.getValue()
+        leadout = self.leadoutAngle.getValue()
 
         start_x = self.rightBound.getValue()
         end_x = self.leftBound.getValue()
+        feed_angle = self.feedAngle.getValue()
         pitch = self.pitch.getValue()
         if self.direction.getValue() == "left to right":
             start_x = self.leftBound.getValue()
             end_x = self.rightBound.getValue()
-        x=start_x
+        x = start_x
         cone_angle = self.coneAngle.getValue() / 180.0 * PI
         cone_offset = abs(start_x-end_x)*sin(cone_angle)
         finish_passes=2
         # switch to feed per rev mode
         #offset_path.append(GCommand("G95"))
         total_rotation = -(end_x-start_x) / pitch * 360
+        if total_rotation < 0:
+            leadout = -leadout
+
+        y = start_y
         while finish_passes>0:
-            y+=stepover
+            y += stepover
+
             if (y > -self.end_diameter.getValue()/2.0):
                 y=-self.end_diameter.getValue()/2.0
                 finish_passes -= 1 # count down finish passes
 
-            offset_path.append(GPoint(position=[start_x, retract_y, 0], rotation=[0,0,0], rapid = True))
-            offset_path.append(GPoint(position=[start_x, y+cone_offset, 0], rotation=[0,0,0], rapid = True))
+            dist_from_end = -y - (self.end_diameter.getValue()/2.0)
+            feedangle_offset =  dist_from_end * math.sin(feed_angle*math.pi/180.0)
+            pass_start_x = start_x + feedangle_offset
+            pass_end_x = end_x + feedangle_offset
+
+            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation=[0,0,0], rapid = True))
+            offset_path.append(GPoint(position=[pass_start_x, y+cone_offset, 0], rotation=[0,0,0], rapid = True))
             #offset_path.append(GCommand("G4 P1"))
-            offset_path.append(GPoint(position=[end_x, y, 0], rotation=[total_rotation,0,0], rapid = False, feedrate=self.pitch.getValue()))
-            offset_path.append(GPoint(position=[end_x, retract_y, 0], rotation=[total_rotation,0,0], rapid = True))
-            offset_path.append(GPoint(position=[start_x, retract_y, 0], rotation = [0,0,0], rapid = True))
+            # the engaged cutting path
+            offset_path.append(GPoint(position=[pass_end_x, y, 0], rotation=[total_rotation,0,0], rapid = False))
+            # add lead-out
+            offset_path.append(GPoint(position=[end_x, start_y, 0], rotation=[total_rotation + leadout,0,0], rapid = False))
+            # retract - this reverses the 4th axis by the same amount - a bit inefficient but avoids wind-up
+            offset_path.append(GPoint(position=[end_x, retract_y, 0], rotation=[total_rotation + leadout,0,0], rapid = True))
+            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation = [0,0,0], rapid = True))
 
         # switch back to normal feedrate mode
         #offset_path.append(GCommand("G94"))
