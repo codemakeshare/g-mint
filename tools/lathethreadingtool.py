@@ -102,7 +102,7 @@ class LatheThreadingTool(ItemWithParameters):
         params = self.presets[parameter.value]
         self.setThread(*params)
 
-
+    # external lathe threading with controllable A axis
     def external_thread(self):
         offset_path = []
         start_y = -self.start_diameter.getValue()/2.0 # for visualization y is negative - will be fixed during export to GCode
@@ -155,7 +155,62 @@ class LatheThreadingTool(ItemWithParameters):
         #offset_path.append(GCommand("G94"))
         return offset_path
 
+
+    # internal lathe threading with controllable A axis
     def internal_thread(self):
+        offset_path = []
+        start_y = -self.start_diameter.getValue()/2.0 # for visualization y is negative - will be fixed during export to GCode
+        retract_y = start_y + self.retract.getValue()
+        stepover = self.stepover.getValue()
+        leadout = self.leadoutAngle.getValue()
+
+        start_x = self.rightBound.getValue()
+        end_x = self.leftBound.getValue()
+        feed_angle = self.feedAngle.getValue()
+        pitch = self.pitch.getValue()
+        if self.direction.getValue() == "left to right":
+            start_x = self.leftBound.getValue()
+            end_x = self.rightBound.getValue()
+        x = start_x
+        cone_angle = self.coneAngle.getValue() / 180.0 * PI
+        cone_offset = abs(start_x-end_x)*sin(cone_angle)
+        finish_passes=2
+        # switch to feed per rev mode
+        #offset_path.append(GCommand("G95"))
+        total_rotation = -(end_x-start_x) / pitch * 360
+        if total_rotation < 0:
+            leadout = -leadout
+
+        y = start_y
+        while finish_passes>0:
+            y -= stepover
+
+            if (y < -self.end_diameter.getValue()/2.0):
+                y=-self.end_diameter.getValue()/2.0
+                finish_passes -= 1 # count down finish passes
+
+            dist_from_end = -y - (self.end_diameter.getValue()/2.0)
+            feedangle_offset =  dist_from_end * math.sin(feed_angle*math.pi/180.0)
+            pass_start_x = start_x + feedangle_offset
+            pass_end_x = end_x + feedangle_offset
+
+            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation=[0,0,0], rapid = True))
+            offset_path.append(GPoint(position=[pass_start_x, y+cone_offset, 0], rotation=[0,0,0], rapid = True))
+            #offset_path.append(GCommand("G4 P1"))
+            # the engaged cutting path
+            offset_path.append(GPoint(position=[pass_end_x, y, 0], rotation=[total_rotation,0,0], rapid = False))
+            # add lead-out
+            offset_path.append(GPoint(position=[end_x, start_y, 0], rotation=[total_rotation + leadout,0,0], rapid = False))
+            # retract - this reverses the 4th axis by the same amount - a bit inefficient but avoids wind-up
+            offset_path.append(GPoint(position=[end_x, retract_y, 0], rotation=[total_rotation + leadout,0,0], rapid = True))
+            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation = [0,0,0], rapid = True))
+
+        # switch back to normal feedrate mode
+        #offset_path.append(GCommand("G94"))
+        return offset_path
+
+
+    def internal_thread_openloop(self):
         offset_path = []
         y = -self.start_diameter.getValue()/2.0
         retract_y = y+self.retract.getValue()
