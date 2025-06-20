@@ -775,7 +775,7 @@ class SliceTask(MillTask):
                 for i in range(0,  len(p)):
                     #check if point lies on boundary
                     bdist,  bpoint,  bindex = closest_point_on_polygon(p[i],  bb)
-                    if bdist<0.001 and False: # (TURNED OFF, buggy) point lies on boundary; skip this point
+                    if bdist<0.001: # (TURNED OFF, buggy) point lies on boundary; skip this point
                         # if this is the first boundary point of the path, append the start to the end
                         if path_closed:
                             remainder_path = opt_path

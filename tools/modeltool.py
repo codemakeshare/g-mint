@@ -26,6 +26,8 @@ class ModelTool(ItemWithParameters):
         self.heightMapButtonTop=ActionParameter(parent=self,  name='Calculate Heightmap (top)',  callback=self.heightmapTop)
         self.heightMapButtonBottom=ActionParameter(parent=self,  name='Calculate Heightmap (bottom)',  callback=self.heightmapBottom)
 
+        self.findFeaturesButton=ActionParameter(parent=self,  name='Find features',  callback=self.findFeatures)
+
         self.parameters=[[self.rotateX, self.rotateY, self.rotateZ],
                          self.scaleX,  self.scaleY,  self.scaleZ,  self.scale,
                          [self.origin_bl, self.origin_tl, self.origin_c], 
@@ -33,7 +35,8 @@ class ModelTool(ItemWithParameters):
                          [self.collapseTop,  self.collapseBottom],
                          self.heightMapResolution,
                          self.heightMapButtonTop,
-                         self.heightMapButtonBottom]
+                         self.heightMapButtonBottom,
+                         self.findFeaturesButton]
     
     
     def rotate_x(self):
@@ -121,3 +124,13 @@ class ModelTool(ItemWithParameters):
             #self.object.interpolate_gaps(self.object.minv[2])
             if self.viewUpdater!=None:
                 self.viewUpdater(mode="heightmap")
+
+    def findFeatures(self):
+        if self.object!=None:
+            all_segments = self.object.findHorizontalFeatures()
+
+            self.patterns = []
+            for d in all_segments.keys():
+                self.patterns += all_segments[d]
+
+        self.viewUpdater("patterns")

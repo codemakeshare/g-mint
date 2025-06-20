@@ -822,8 +822,23 @@ class CAM_Solid(Solid):
         return sorted_segments
     
     
-    
-    
+    def findHorizontalFeatures(self):
+        depths = dict()
+        for f in self.facets:
+            #check if facet is horizontal (all z coords on same level):
+            z_coords = [v[2] for v in f.vertices]
+            min_z = min(z_coords)
+            max_z = max(z_coords)
+            if (min_z == max_z):
+                depths[min_z] = None
+            
+        print(depths.keys())
+
+        for d in depths.keys():
+            depths[d] = self.calcSlice(d)
+
+        return depths
+
     
     
     

@@ -37,6 +37,10 @@ class ModelDialog(QtWidgets.QWidget):
         if mode == 'slice':
             self.viewer.showFacets(self.modelTool.object)
 
+        if mode == 'patterns':
+            self.viewer.showPath(self.modelTool.patterns)
+
+
     def showDialog(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '', "STL files (*.stl)")[0]
         self.loadObject(filename)
