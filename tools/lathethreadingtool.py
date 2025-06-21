@@ -140,7 +140,7 @@ class LatheThreadingTool(ItemWithParameters):
             pass_start_x = start_x + feedangle_offset
             pass_end_x = end_x + feedangle_offset
 
-            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation=[0,0,0], rapid = True))
+            offset_path.append(GPoint(position=[pass_start_x, retract_y, 0], rotation=[0,0,0], rapid = True, init_rot_axis=[True, False, False]))
             offset_path.append(GPoint(position=[pass_start_x, y+cone_offset, 0], rotation=[0,0,0], rapid = True))
             #offset_path.append(GCommand("G4 P1"))
             # the engaged cutting path

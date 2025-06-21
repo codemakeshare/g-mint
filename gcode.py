@@ -5,11 +5,14 @@ import traceback
 class GCommand:
     def __init__(self, command="", position=None, rotation=None, feedrate=None, rapid=False,
                  control_point=True, line_number=0,
-                 axis_mapping = ["X", "Y", "Z"], axis_scaling = [1.0, 1.0, 1,0], rot_axis_mapping=["A", "B", "C"]):
+                 axis_mapping = ["X", "Y", "Z"], axis_scaling = [1.0, 1.0, 1,0], rot_axis_mapping=["A", "B", "C"], 
+                 init_pos_axis = [False, False, False], init_rot_axis = [False, False, False]):
         self.command = command
         self.axis_mapping = axis_mapping
         self.axis_scaling = axis_scaling
         self.rot_axis_mapping=  rot_axis_mapping
+        self.init_pos_axis = init_pos_axis
+        self.init_rot_axis = init_rot_axis
         self.control_point = control_point
         self.feedrate = feedrate
         self.rapid = rapid
@@ -57,11 +60,11 @@ class GPoint(GCommand):
         self.command = ""
         if not self.control_point:
             for i in range(0, len(self.position)):
-                if current_pos is None or self.position[i]*self.axis_scaling[i] != current_pos[i]:
+                if current_pos is None or self.position[i]*self.axis_scaling[i] != current_pos[i] or self.init_pos_axis[i]:
                     self.command += "%s%f " % (am[i], self.position[i]*self.axis_scaling[i])
             if self.rotation is not None:
                 for i in range(0, len(self.rotation)):
-                    if current_rotation is None or self.rotation[i] != current_rotation[i]:
+                    if current_rotation is None or self.rotation[i] != current_rotation[i] or self.init_rot_axis[i]:
                         self.command += "%s%f " % (ram[i], self.rotation[i])
         # if self.feedrate!=None:
         #    self.command="%sF%f"%(self.command,  self.feedrate)
@@ -292,6 +295,7 @@ class GCode:
         return (length, duration, current_feedrate, cut_length, rapid_length, cut_duration, rapid_duration)
 
     def toText(self, write_header=False, pure=False):
+        preamble = ""
         output = ""
         #print("laser mode:", self.laser_mode, "pure: ", pure)
         if not pure:
@@ -299,9 +303,9 @@ class GCode:
             if write_header:
                 print("Path estimate: Length: %f mm;  Duration: %f minutes. Last feedrate: %f" % (estimate[0],
                                                                                                   estimate[1], estimate[2]))
-                output += "( " + "Path estimate: Length: %f mm;  Duration: %f minutes. Last feedrate: %f" % (
+                preamble += "( " + "Path estimate: Length: %f mm;  Duration: %f minutes. Last feedrate: %f" % (
                 estimate[0], estimate[1], estimate[2]) + " )\n"
-                output += "G90G21G17G54\n"
+                preamble += "G90G21G17G54\n"
 
         if self.default_feedrate != None:
             output += "G1F%f\n" % (self.default_feedrate)
@@ -312,10 +316,12 @@ class GCode:
         #         complete_path+=segment
         rapid = None
 
+        init_pos = None
         current_feedrate = self.default_feedrate
         current_pos = None
-        current_rotation = [0,0,0]
+        current_rotation = [0.0, 0.0, 0.0]
         current_gmode = "G1"
+
         for p in complete_path:
             if isinstance(p, GPoint):
 
@@ -341,6 +347,9 @@ class GCode:
                         current_gmode = p.gmode
                         output += current_gmode+" "
 
+                if init_pos is None: #remember first actual position for initialisation
+                    init_pos = p.to_output(current_pos = current_pos, current_rotation = current_rotation)
+
             output += "" + p.to_output(current_pos = current_pos, current_rotation = current_rotation)
 
             if p.position is not None:
@@ -356,6 +365,8 @@ class GCode:
             #    current_feedrate = self.default_feedrate
             #    output += "F%f" % current_feedrate
             output += "\n"
+
+        output = preamble  + "G0 " + init_pos + "\n" + output
 
         if not pure:
             output += "M02\n%\n"
